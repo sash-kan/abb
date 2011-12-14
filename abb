@@ -1,0 +1,8 @@
+#!/bin/bash
+d=$PWD
+spec=(*.spec)
+[ ${#spec[*]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit; }
+
+cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
+eval $cmd $@
+
