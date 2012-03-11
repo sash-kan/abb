@@ -9,10 +9,25 @@ build, builda, buildb, buildp... (see below)
 
 <project name> can be omitted for command "build*" if we are in the project dir
 
+conffiles:
+first script looking for ~/.abbrc
+if it not exists, then looking for .abbrc in curdir
+
 
 examples:
 $ abb clone mandriva-release
-this is equivalent to "git clone https://abf.rosalinux.ru/import/mandriva-release.git"
+this is equivalent to
+1. "git clone https://abf.rosalinux.ru/import/mandriva-release.git"
+2. "cd mandriva-release"
+3. "git checkout -t origin/rosa2012lts"
+4. "cd .."
+all parts of arguments can be overriden via a conffile
+default settings:
+proto=https
+server=abf.rosalinux.ru
+owner=import
+remote=origin
+branch=rosa2012lts
 
 $ abb build mandriva-release
 in this case script tries to determine whether project already cloned
