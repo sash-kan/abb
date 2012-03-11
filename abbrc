@@ -1,0 +1,21 @@
+# using proto (http|https) 
+#proto=https
+
+# server
+#server=abf.rosalinux.ru
+
+# owner of repo (user name or group name)
+#owner=import
+
+# default branch
+#branch=rosa2012lts
+
+# default remote
+#remote=origin
+
+# by defaylt no auth
+#auth=
+# insecure:
+#auth=user:password
+# more secure, but very-very uncomfortable:
+#auth=user
