@@ -1,0 +1,26 @@
+abf local build script
+
+usage:
+$ abb <command> [<project name>]
+
+supported commands:
+clone
+build, builda, buildb, buildp... (see below)
+
+<project name> can be omitted for command "build*" if we are in the project dir
+
+
+examples:
+$ abb clone mandriva-release
+this is equivalent to "git clone https://abf.rosalinux.ru/import/mandriva-release.git"
+
+$ abb build mandriva-release
+in this case script tries to determine whether project already cloned
+if not - he clones the project
+then he tries to build project
+
+you can add suffix to command "build":
+builda - like -ba option to rpmbuild
+buildb - like -bb option to rpmbuild (by default)
+buildp - like -bp option to rpmbuild
+and so forth
