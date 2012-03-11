@@ -1,8 +1,150 @@
 #!/bin/bash
-d=$PWD
-spec=(*.spec)
-[ ${#spec[*]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit; }
+# vim: sw=2:ts=2:sts=2
 
-cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
-eval $cmd $@
+# defaults:
 
+# using proto (http|https)
+proto=https
+# server
+server=abf.rosalinux.ru
+# yes yes!
+export GIT_SSL_NO_VERIFY=true
+# owner of repo (user name or group name)
+owner=import
+# default branch
+branch=rosa2012lts
+# default remote
+remote=origin
+# insecure:
+#auth=user:password
+# more secure, but very-very uncomfortable:
+#auth=user
+# default rpmbuild action
+action="-bb"
+
+# get user settings
+# first look in ~/.abbrc
+[ -f ~/.abbrc ] && . ~/.abbrc
+# if it does not exist then look for .abbrc in curdir
+[ ! -f ~/.abbrc -a -f .abbrc ] && . .abbrc
+# if both do not exist, using defaults written above
+
+# if auth not empty, add "@" to the end
+auth=${auth:+${auth}@}
+
+usage() {
+	[ $# == 1 ] && echo -e "$1"
+  cat <<EOT
+usage: $0 command project"
+command: clone"
+
+settings are in ~/.abbrc
+EOT
+	exit 1
+}
+
+do_clone() {
+	url=${proto}://${auth}${server}/${owner}/${project}.git
+	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
+	echo "try to checkout to branch '$branch' of remote '$remote'" 
+	git checkout -t "$remote/$branch" || exit 2
+	cd ..
+}
+
+do_build() {
+	echo "tru tp build"
+	#echo ${opts[@]}; exit
+	local d=$PWD
+	local spec=(*.spec)
+	[ ${#spec[@]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit 2; }
+
+	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
+	eval $cmd $action "${opts[@]}"
+}
+
+unset command
+declare -a args=()
+declare -a opts=()
+
+# parse arguments
+for i in "$@"; do
+	case "$i" in
+		clone)
+			[ -z "$command" ] && command="clone" || args=("${args[@]}" "${i%%/}")
+			;;
+		build)
+			[ -z "$command" ] && command="build" || args=("${args[@]}" "${i%%/}")
+			;;
+		build?)
+			command="build"
+			action="${i/build/-b}"
+			;;
+		-b?)
+			action="$i"
+			;;
+		-*)
+			opts=("${opts[@]}" "$i")
+			;;
+		*)
+			args=("${args[@]}" "${i%%/}")
+			;;
+	esac
+done
+
+# check arguments
+[ -z "$command" ] && usage "please specify a command"
+[ ${#args[@]} -eq 1 ] && project=${args[0]}
+case "$command" in
+	clone)
+		[ ${#args[@]} -ne 1 ] && usage "command 'clone' needs one argument - project name"
+		;;
+	build)
+		case ${#args[@]} in
+			0)
+				# believe that we are in a directory with the source
+				project=$(basename $PWD)
+				;;
+			1)
+				[ -d "${args[0]}" -o "$(basename $PWD)" == "${args[0]}" -a -d .git -a -f *.spec ] || { echo "directory '${args[0]}' does not exist, so try to clone first"; \
+					do_clone || exit 1; }
+				;;
+			*)
+				usage "command 'build' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
+				;;
+		esac
+		;;
+	*)
+		usage "unknown command: $command"
+		;;
+esac
+
+# need for debug only
+print_args() {
+	echo "args:"
+	for i in "${args[@]}"; do
+		echo $i
+	done
+	echo "opts:"
+	for i in "${opts[@]}"; do
+		echo $i
+	done
+	echo "command=$command"
+	echo "action=$action"
+	echo "url=$url"
+}
+#print_args; exit
+
+# let's start
+case "$command" in
+	clone)
+		do_clone
+		;;
+	build)
+		[ -d "$project" ] && { cd "$project" || exit 1; }
+		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo "it seems that this directory does not contain the git repo";  exit 1; }
+		do_build
+		;;
+	*)
+		usage "unknown command: $command"
+		;;
+esac
