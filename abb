@@ -46,8 +46,10 @@ EOT
 do_clone() {
 	url=${proto}://${auth}${server}/${owner}/${project}.git
 	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
-	echo "try to checkout to branch '$branch' of remote '$remote'" 
-	git checkout -t "$remote/$branch" || exit 2
+	if [ -n "$branch" ]; then
+		echo "try to checkout to branch '$branch' of remote '$remote'" 
+		git checkout -t "$remote/$branch" || exit 2
+	fi
 }
 
 do_build() {
