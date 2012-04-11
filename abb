@@ -52,7 +52,7 @@ do_clone() {
 }
 
 do_build() {
-	echo "tru tp build"
+	echo "try to build"
 	#echo ${opts[@]}; exit
 	local d=$PWD
 	local spec=(*.spec)
