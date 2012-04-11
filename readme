@@ -31,11 +31,11 @@ auth=
 
 you can also override any option in command-line
 in form <option>=<value> like there:
-$ abb branch=master clone mandriva-release
+$ abb branch=import_cooker clone mandriva-release
 or
-$ abb clone branch=master mandriva-release
+$ abb clone branch=import_cooker mandriva-release
 or
-$ abb clone mandriva-release branch=master
+$ abb clone mandriva-release branch=import_cooker
 
 
 $ abb build mandriva-release
