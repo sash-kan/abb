@@ -13,7 +13,6 @@ conffiles:
 first script looking for ~/.abbrc
 if it not exists, then looking for .abbrc in curdir
 
-
 examples:
 $ abb clone mandriva-release
 this is equivalent to
@@ -26,8 +25,18 @@ default settings:
 proto=https
 server=abf.rosalinux.ru
 owner=import
-remote=origin
 branch=rosa2012lts
+remote=origin
+auth=
+
+you can also override any option in command-line
+in form <option>=<value> like there:
+$ abb branch=master clone mandriva-release
+or
+$ abb clone branch=master mandriva-release
+or
+$ abb clone mandriva-release branch=master
+
 
 $ abb build mandriva-release
 in this case script tries to determine whether project already cloned

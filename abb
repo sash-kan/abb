@@ -48,7 +48,6 @@ do_clone() {
 	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
 	echo "try to checkout to branch '$branch' of remote '$remote'" 
 	git checkout -t "$remote/$branch" || exit 2
-	cd ..
 }
 
 do_build() {
@@ -84,6 +83,24 @@ for i in "$@"; do
 			;;
 		-*)
 			opts=("${opts[@]}" "$i")
+			;;
+		proto=*)
+			proto=${i#proto=}
+			;;
+		server=*)
+			server=${i#server=}
+			;;
+		owner=*)
+			owner=${i#owner=}
+			;;
+		branch=*)
+			branch=${i#branch=}
+			;;
+		remote=*)
+			remote=${i#remote=}
+			;;
+		auth=*)
+			auth=${i#auth=}
 			;;
 		*)
 			args=("${args[@]}" "${i%%/}")
