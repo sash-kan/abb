@@ -29,9 +29,6 @@ action="-bb"
 [ ! -f ~/.abbrc -a -f .abbrc ] && . .abbrc
 # if both do not exist, using defaults written above
 
-# if auth not empty, add "@" to the end
-auth=${auth:+${auth}@}
-
 usage() {
 	[ $# == 1 ] && echo -e "$1"
   cat <<EOT
@@ -44,7 +41,6 @@ EOT
 }
 
 do_clone() {
-	url=${proto}://${auth}${server}/${owner}/${project}.git
 	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
 	if [ -n "$branch" ]; then
 		echo "try to checkout to branch '$branch' of remote '$remote'" 
@@ -110,6 +106,9 @@ for i in "$@"; do
 	esac
 done
 
+# if auth not empty, add "@" to the end
+auth=${auth:+${auth}@}
+
 # check arguments
 [ -z "$command" ] && usage "please specify a command"
 [ ${#args[@]} -eq 1 ] && project=${args[0]}
@@ -136,6 +135,8 @@ case "$command" in
 		usage "unknown command: $command"
 		;;
 esac
+
+url=${proto}://${auth}${server}/${owner}/${project}.git
 
 # need for debug only
 print_args() {
