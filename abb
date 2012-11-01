@@ -114,7 +114,7 @@ auth=${auth:+${auth}@}
 [ ${#args[@]} -eq 1 ] && project=${args[0]}
 case "$command" in
 	clone)
-		[ ${#args[@]} -ne 1 ] && usage "command 'clone' needs one argument - project name"
+		[ ${#args[@]} -ne 1 ] && usage "command 'clone' takes one argument - project name"
 		;;
 	build)
 		case ${#args[@]} in
