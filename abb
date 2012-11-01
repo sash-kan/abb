@@ -59,6 +59,11 @@ do_build() {
 	eval $cmd $action "${opts[@]}"
 }
 
+do_abb() {
+	echo "do abb"
+	print_args
+}
+
 unset command
 declare -a args=()
 declare -a opts=()
@@ -100,6 +105,9 @@ for i in "$@"; do
 		auth=*)
 			auth=${i#auth=}
 			;;
+		abb)
+			command="abb"
+			;;
 		*)
 			args=("${args[@]}" "${i%%/}")
 			;;
@@ -131,6 +139,21 @@ case "$command" in
 				;;
 		esac
 		;;
+	abb)
+		case ${#args[@]} in
+			0)
+				# believe that we are in a directory with the source
+				project=$(basename $PWD)
+				;;
+			1)
+				[ -d "${args[0]}" -o "$(basename $PWD)" == "${args[0]}" -a -d .git -a -f *.spec ] || { echo "directory '${args[0]}' does not exist, so try to clone first"; \
+					do_clone || exit 1; }
+				;;
+			*)
+				usage "command 'abb' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
+				;;
+		esac
+		;;
 	*)
 		usage "unknown command: $command"
 		;;
@@ -151,6 +174,9 @@ print_args() {
 	echo "command=$command"
 	echo "action=$action"
 	echo "url=$url"
+	echo "project=$project"
+	echo "owner=$owner"
+	echo "auth=$auth"
 }
 #print_args; exit
 
@@ -163,6 +189,10 @@ case "$command" in
 		[ -d "$project" ] && { cd "$project" || exit 1; }
 		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo "it seems that this directory does not contain the git repo";  exit 1; }
 		do_build
+		;;
+	abb)
+		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || usage "it seems that this directory does not contain the git repo"
+		do_abb
 		;;
 	*)
 		usage "unknown command: $command"
