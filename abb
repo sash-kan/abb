@@ -79,32 +79,49 @@ do_store() {
 		echo "$0 $command $file abfyml=.abf.yml"
 		return 1
 	fi
+
+	local sha=$(sha1sum "${file}" | sed 's/\s.*//')
+	echo "sha1sum = '${sha}'"
+
+	if [ -e "${abfyml}" ]; then
+		if grep -qE "\<${file}\>|\<${sha}\>" ${abfyml}; then
+			echo "file '${abfyml}' also contains this line:"
+			grep -E "\<${file}\>|\<${sha}\>" ${abfyml}
+			echo "aborting..."
+			return 1
+		fi
+	fi
+
+	echo -n "check if file also stored... "
+	if wget -q --spider http://file-store.rosalinux.ru/download/${sha}; then
+		echo "yes"
+		echo "skip storing"
+	else
+		echo "no"
+		echo "try to store file ${file}"
+		local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/file_stores)
+
+		echo "curl output:"
+		echo ${curloutput}
+
+		echo -n "check if file stored correctly... "
+		if wget -q --spider http://file-store.rosalinux.ru/download/${sha}; then
+			echo "ok"
+		else
+			echo "error: can't check"
+			echo "curl output:"
+			echo ${curloutput}
+			echo "aborting..."
+			return 1
+		fi
+	fi
 	if [ ! -e "${abfyml}" ]; then
 		echo "${abfyml} not exist, create one"
 		echo "---" > "${abfyml}"
 		echo "sources:" >> "${abfyml}"
 	fi
-
-	local sha=$(sha1sum "${file}" | sed 's/\s.*//')
-	echo "sha1sum = '${sha}'"
-	grep -qE "\<${file}\>|\<${sha}\>" ${abfyml} && {
-		echo "file '${abfyml}' also contains this line:"
-		grep -E "\<${file}\>|\<${sha}\>" ${abfyml}
-		echo "aborting..."
-		return 1
-	}
-
-	echo "try to store file ${file}"
-	local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/file_stores)
-	echo "curl output:"
-	echo ${curloutput}
-	if yesno; then
-		echo "adding line to '${abfyml}'"
-		echo "  ${file}: ${sha}" >> "${abfyml}"
-	else
-		echo "aborting..."
-		return 1
-	fi
+	echo "adding line to '${abfyml}'"
+	echo "  ${file}: ${sha}" >> "${abfyml}"
 }
 
 unset command
