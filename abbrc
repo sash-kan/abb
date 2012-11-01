@@ -19,3 +19,5 @@
 #auth=user:password
 # more secure, but very-very uncomfortable:
 #auth=user
+# name of abf yml file to store sha1sums
+#abfyml=".abf.yml"

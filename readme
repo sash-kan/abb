@@ -2,6 +2,7 @@ abf local build script
 
 usage:
 $ abb <command> [<project name>]
+$ abb store <file name>
 
 supported commands:
 clone
@@ -28,6 +29,7 @@ owner=import
 branch=rosa2012lts
 remote=origin
 auth=
+abfyml=.abf.yml
 
 you can also override any option in command-line
 in form <option>=<value> like there:
@@ -48,3 +50,8 @@ builda - like -ba option to rpmbuild
 buildb - like -bb option to rpmbuild (by default)
 buildp - like -bp option to rpmbuild
 and so forth
+
+command "store":
+try to upload file to abf storage: http://file-store.rosalinux.ru
+now this service requires authentication to upload files.
+authentication is the same as on the https://abf.rosalinux.ru

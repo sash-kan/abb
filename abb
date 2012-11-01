@@ -21,6 +21,8 @@ remote=origin
 #auth=user
 # default rpmbuild action
 action="-bb"
+# name of abf yml file to store sha1sums
+abfyml=".abf.yml"
 
 # get user settings
 # first look in ~/.abbrc
@@ -32,10 +34,13 @@ action="-bb"
 usage() {
 	[ $# == 1 ] && echo -e "$1"
   cat <<EOT
-usage: $0 command project"
-command: clone"
+usage:
+$0 clone <name of project>
+$0 build [<name of project>]
+$0 store <name of file>
 
 settings are in ~/.abbrc
+see readme, please!
 EOT
 	exit 1
 }
@@ -59,6 +64,49 @@ do_build() {
 	eval $cmd $action "${opts[@]}"
 }
 
+yesno() {
+	local cont
+	read -p "is it ok? (Y|n): " cont
+	[ "${cont}" == "" -o "${cont}" == "y" -o "${cont}" == "Y" ] && return 0
+	return 1
+}
+
+do_store() {
+	local file=${args[0]}
+	if [ "${abfyml}" == "" ]; then
+		echo "error: name of abf yml file not specified"
+		echo "for example:"
+		echo "$0 $command $file abfyml=.abf.yml"
+		return 1
+	fi
+	if [ ! -e "${abfyml}" ]; then
+		echo "${abfyml} not exist, create one"
+		echo "---" > "${abfyml}"
+		echo "sources:" >> "${abfyml}"
+	fi
+
+	local sha=$(sha1sum "${file}" | sed 's/\s.*//')
+	echo "sha1sum = '${sha}'"
+	grep -qE "\<${file}\>|\<${sha}\>" ${abfyml} && {
+		echo "file '${abfyml}' also contains this line:"
+		grep -E "\<${file}\>|\<${sha}\>" ${abfyml}
+		echo "aborting..."
+		return 1
+	}
+
+	echo "try to store file ${file}"
+	local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/file_stores)
+	echo "curl output:"
+	echo ${curloutput}
+	if yesno; then
+		echo "adding line to '${abfyml}'"
+		echo "  ${file}: ${sha}" >> "${abfyml}"
+	else
+		echo "aborting..."
+		return 1
+	fi
+}
+
 unset command
 declare -a args=()
 declare -a opts=()
@@ -75,6 +123,9 @@ for i in "$@"; do
 		build?)
 			command="build"
 			action="${i/build/-b}"
+			;;
+		store)
+			command="store"
 			;;
 		-b?)
 			action="$i"
@@ -99,6 +150,9 @@ for i in "$@"; do
 			;;
 		auth=*)
 			auth=${i#auth=}
+			;;
+		abfyml=*)
+			abfyml=${i#abfyml=}
 			;;
 		*)
 			args=("${args[@]}" "${i%%/}")
@@ -130,6 +184,9 @@ case "$command" in
 				usage "command 'build' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
 				;;
 		esac
+		;;
+	store)
+		[ ${#args[@]} -ne 1 ] && usage "command 'store' takes one argument - file name"
 		;;
 	*)
 		usage "unknown command: $command"
@@ -163,6 +220,9 @@ case "$command" in
 		[ -d "$project" ] && { cd "$project" || exit 1; }
 		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo "it seems that this directory does not contain the git repo";  exit 1; }
 		do_build
+		;;
+	store)
+		do_store
 		;;
 	*)
 		usage "unknown command: $command"
