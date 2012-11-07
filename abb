@@ -37,6 +37,7 @@ usage() {
 usage:
 $0 clone <name of project>
 $0 build [<name of project>]
+$0 restore [<name of project>]
 $0 store <name of file>
 
 settings are in ~/.abbrc
@@ -62,6 +63,46 @@ do_build() {
 
 	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
 	eval $cmd $action "${opts[@]}"
+}
+
+do_restore() {
+	local file sha
+	echo "try to restore files from abf storage"
+	if [ "${abfyml}" == "" ]; then
+		echo "error: name of abf yml file not specified"
+		echo "for example:"
+		echo "$0 $command abfyml=.abf.yml"
+		return 1
+	fi
+	if [ -e "${abfyml}" ]; then
+		echo "parsing file '${abfyml}'"
+		sed -rn 's/^\s*([^[:space:]:]+):?\s*([0-9a-fA-F]+)\s*$/\1 \2/p' ${abfyml} | \
+		while read file sha; do
+			#echo -n "found entry: file=${file} sha1sum=${sha} ... "
+			echo -n "found entry: file=${file} ... "
+			if [ -e ${file} ]; then
+				if echo "${sha}  ${file}" | sha1sum -c --status; then
+					echo "ok"
+				else
+					echo "sha1sum INCORRECT! skipping..."
+				fi
+			else
+				echo -n "try to download... "
+				if wget -q --content-disposition "http://file-store.rosalinux.ru/download/${sha}"; then
+					echo "ok"
+					echo -n "check sum... "
+					if echo "${sha}  ${file}" | sha1sum -c --status; then
+						echo "ok"
+					else
+						echo "sha1sum INCORRECT! skipping..."
+					fi
+				else
+					echo "filed! skipping..."
+				fi
+			fi
+		done
+	fi
+
 }
 
 yesno() {
@@ -100,9 +141,6 @@ do_store() {
 		echo "no"
 		echo "try to store file ${file}"
 		local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/file_stores)
-
-		echo "curl output:"
-		echo ${curloutput}
 
 		echo -n "check if file stored correctly... "
 		if wget -q --spider http://file-store.rosalinux.ru/download/${sha}; then
@@ -143,6 +181,9 @@ for i in "$@"; do
 			;;
 		store)
 			command="store"
+			;;
+		restore)
+			[ -z "$command" ] && command="restore" || args=("${args[@]}" "${i%%/}")
 			;;
 		-b?)
 			action="$i"
@@ -187,7 +228,7 @@ case "$command" in
 	clone)
 		[ ${#args[@]} -ne 1 ] && usage "command 'clone' takes one argument - project name"
 		;;
-	build)
+	build|restore)
 		case ${#args[@]} in
 			0)
 				# believe that we are in a directory with the source
@@ -198,7 +239,7 @@ case "$command" in
 					do_clone || exit 1; }
 				;;
 			*)
-				usage "command 'build' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
+				usage "command '${command}' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
 				;;
 		esac
 		;;
@@ -233,10 +274,10 @@ case "$command" in
 	clone)
 		do_clone
 		;;
-	build)
+	build|restore)
 		[ -d "$project" ] && { cd "$project" || exit 1; }
 		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo "it seems that this directory does not contain the git repo";  exit 1; }
-		do_build
+		do_${command}
 		;;
 	store)
 		do_store

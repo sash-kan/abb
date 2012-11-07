@@ -7,6 +7,7 @@ $ abb store <file name>
 supported commands:
 clone
 build, builda, buildb, buildp... (see below)
+restore
 
 <project name> can be omitted for command "build*" if we are in the project dir
 
@@ -52,6 +53,15 @@ buildp - like -bp option to rpmbuild
 and so forth
 
 command "store":
-try to upload file to abf storage: http://file-store.rosalinux.ru
+"store" tries to upload file to abf storage: http://file-store.rosalinux.ru.
 now this service requires authentication to upload files.
-authentication is the same as on the https://abf.rosalinux.ru
+authentication is the same as on the https://abf.rosalinux.ru.
+"store" requires one argument - name of file to store.
+"store" must be run in the project directory.
+
+command "restore":
+"restore" - opposite to "store".
+if "restore" is running in the project directory, it does not require any
+arguments.
+otherwise requires one argument - the name of the project (or rather the
+project directory), similar to "build" or "clone".
