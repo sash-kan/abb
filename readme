@@ -31,6 +31,7 @@ branch=rosa2012lts
 remote=origin
 auth=
 abfyml=.abf.yml
+buildlog=yes
 
 you can also override any option in command-line
 in form <option>=<value> like there:

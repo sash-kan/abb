@@ -40,6 +40,8 @@ remote=origin
 action="-bb"
 # name of abf yml file to store sha1sums
 abfyml=".abf.yml"
+# write buildlog (any, even empty value, cancels log creation)
+buildlog=yes
 
 # get user settings
 # first look in ~/.abbrc
@@ -79,7 +81,13 @@ do_build() {
 	[ ${#spec[@]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit 2; }
 
 	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
-	eval $cmd $action "${opts[@]}"
+	if [ "${buildlog}" == "yes" ]; then
+		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$$).$(hostname -s).buildlog"
+		eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
+		echo "build log is saved in ${logname}"
+	else
+		eval $cmd $action "${opts[@]}"
+	fi
 }
 
 do_restore() {
@@ -228,6 +236,9 @@ for i in "$@"; do
 			;;
 		abfyml=*)
 			abfyml=${i#abfyml=}
+			;;
+		buildlog=*)
+			buildlog=${i#buildlog=}
 			;;
 		*)
 			args=("${args[@]}" "${i%%/}")
