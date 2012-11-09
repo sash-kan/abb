@@ -82,7 +82,7 @@ do_build() {
 
 	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
 	if [ "${buildlog}" == "yes" ]; then
-		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$$).$(hostname -s).buildlog"
+		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
 		eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
 		echo "build log is saved in ${logname}"
 	else
