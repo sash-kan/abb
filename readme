@@ -20,14 +20,14 @@ $ abb clone mandriva-release
 this is equivalent to
 1. "git clone https://abf.rosalinux.ru/import/mandriva-release.git"
 2. "cd mandriva-release"
-3. "git checkout -t origin/rosa2012lts"
+3. "git checkout -t origin/rosa2012.1"
 4. "cd .."
 all parts of arguments can be overriden via a conffile
 default settings:
 proto=https
 server=abf.rosalinux.ru
 owner=import
-branch=rosa2012lts
+branch=rosa2012.1
 remote=origin
 auth=
 abfyml=.abf.yml

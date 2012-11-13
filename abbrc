@@ -8,7 +8,7 @@
 #owner=import
 
 # default branch
-#branch=rosa2012lts
+#branch=rosa2012.1
 
 # default remote
 #remote=origin
