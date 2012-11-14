@@ -101,7 +101,7 @@ do_restore() {
 	fi
 	if [ -e "${abfyml}" ]; then
 		echo "parsing file '${abfyml}'"
-		sed -rn 's/^\s*"?([^[:space:]:"]+)"?\s*:?\s*"?([0-9a-fA-F]+)"?\s*$/\1 \2/p' ${abfyml} | \
+		sed -rn 's/^[\"'\''[:space:]]*([^[:space:]:\"'\'']+)[\"'\''[:space:]]*.*[\"'\''[:space:]]*([0-9a-fA-F]{40})[\"'\''[:space:]]*$/\1 \2/p' ${abfyml} | \
 		while read file sha; do
 			#echo -n "found entry: file=${file} sha1sum=${sha} ... "
 			echo -n "found entry: file=${file} ... "
