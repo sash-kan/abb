@@ -16,10 +16,10 @@ first script looking for ~/.abbrc
 if it not exists, then looking for .abbrc in curdir
 
 examples:
-$ abb clone mandriva-release
+$ abb clone rosa-release
 this is equivalent to
-1. "git clone https://abf.rosalinux.ru/import/mandriva-release.git"
-2. "cd mandriva-release"
+1. "git clone https://abf.rosalinux.ru/import/rosa-release.git"
+2. "cd rosa-release"
 3. "git checkout -t origin/rosa2012.1"
 4. "cd .."
 all parts of arguments can be overriden via a conffile
@@ -32,17 +32,18 @@ remote=origin
 auth=
 abfyml=.abf.yml
 buildlog=yes
+restore=always
 
 you can also override any option in command-line
 in form <option>=<value> like there:
-$ abb branch=import_cooker clone mandriva-release
+$ abb branch=import_cooker clone rosa-release
 or
-$ abb clone branch=import_cooker mandriva-release
+$ abb clone branch=import_cooker rosa-release
 or
-$ abb clone mandriva-release branch=import_cooker
+$ abb clone rosa-release branch=import_cooker
 
 
-$ abb build mandriva-release
+$ abb build rosa-release
 in this case script tries to determine whether project already cloned
 if not - he clones the project
 then he tries to build project
@@ -66,3 +67,15 @@ if "restore" is running in the project directory, it does not require any
 arguments.
 otherwise requires one argument - the name of the project (or rather the
 project directory), similar to "build" or "clone".
+
+command "clone" and option "restore=[always|ask|none|]":
+now by default abb tries to download files right after "clone".
+you can override this behavior by specifying an option "restore=<condition>"
+in the command-line or in the ~/.abbrc (where <condition> can be "always",
+"ask", or "none").
+for example:
+$ abb clone rosa-release restore=ask
+...
+restore files. is it ok? (Y|n):
+...
+
