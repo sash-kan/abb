@@ -42,6 +42,8 @@ action="-bb"
 abfyml=".abf.yml"
 # write buildlog (any, even empty value, cancels log creation)
 buildlog=yes
+# do restore after clone (always,ask,none)
+restore=always
 
 # get user settings
 # first look in ~/.abbrc
@@ -65,29 +67,11 @@ EOT
 	exit 1
 }
 
-do_clone() {
-	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
-	if [ -n "$branch" ]; then
-		echo "try to checkout to branch '$branch' of remote '$remote'" 
-		git checkout -t "$remote/$branch" || exit 2
-	fi
-}
-
-do_build() {
-	echo "try to build"
-	#echo ${opts[@]}; exit
-	local d=$PWD
-	local spec=(*.spec)
-	[ ${#spec[@]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit 2; }
-
-	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
-	if [ "${buildlog}" == "yes" ]; then
-		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
-		eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
-		echo "build log is saved in ${logname}"
-	else
-		eval $cmd $action "${opts[@]}"
-	fi
+yesno() {
+	local cont
+	read -p "is it ok? (Y|n): " cont
+	[ "${cont}" == "" -o "${cont}" == "y" -o "${cont}" == "Y" ] && return 0
+	return 1
 }
 
 do_restore() {
@@ -130,11 +114,37 @@ do_restore() {
 
 }
 
-yesno() {
-	local cont
-	read -p "is it ok? (Y|n): " cont
-	[ "${cont}" == "" -o "${cont}" == "y" -o "${cont}" == "Y" ] && return 0
-	return 1
+do_clone() {
+	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
+	if [ -n "$branch" ]; then
+		echo "try to checkout to branch '$branch' of remote '$remote'" 
+		git checkout -t "$remote/$branch" || exit 2
+	fi
+
+	if [ "${restore}" == "always" -o "${restore}" == "ask" ]; then
+		if [ "${restore}" == "ask" ]; then
+			echo -n "restore files. "
+			yesno || return
+		fi
+		do_restore
+	fi
+}
+
+do_build() {
+	echo "try to build"
+	#echo ${opts[@]}; exit
+	local d=$PWD
+	local spec=(*.spec)
+	[ ${#spec[@]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit 2; }
+
+	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
+	if [ "${buildlog}" == "yes" ]; then
+		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
+		eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
+		echo "build log is saved in ${logname}"
+	else
+		eval $cmd $action "${opts[@]}"
+	fi
 }
 
 do_store() {
@@ -239,6 +249,9 @@ for i in "$@"; do
 			;;
 		buildlog=*)
 			buildlog=${i#buildlog=}
+			;;
+		restore=*)
+			restore=${i#restore=}
 			;;
 		*)
 			args=("${args[@]}" "${i%%/}")

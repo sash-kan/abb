@@ -19,7 +19,13 @@
 #auth=user:password
 # more secure, but very-very uncomfortable:
 #auth=user
+
 # name of abf yml file to store sha1sums
 #abfyml=".abf.yml"
+
 # write buildlog (any, even empty value, cancels log creation)
 #buildlog=yes
+
+# do restore after clone (always,ask,none)
+#restore=always
+
