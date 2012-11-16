@@ -97,7 +97,7 @@ do_restore() {
 				fi
 			else
 				echo -n "try to download... "
-				if wget -q --content-disposition "http://file-store.rosalinux.ru/download/${sha}"; then
+				if wget -qO - "http://file-store.rosalinux.ru/download/${sha}" > "${file}"; then
 					echo "ok"
 					echo -n "check sum... "
 					if echo "${sha}  ${file}" | sha1sum -c --status; then
