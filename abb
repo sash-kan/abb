@@ -204,21 +204,14 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone)
-			[ -z "$command" ] && command="clone" || args=("${args[@]}" "${i%%/}")
-			;;
-		build)
-			[ -z "$command" ] && command="build" || args=("${args[@]}" "${i%%/}")
+		clone|build|store|restore)
+			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
+			command=${i%%/}
 			;;
 		build?)
+			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command="build"
 			action="${i/build/-b}"
-			;;
-		store)
-			command="store"
-			;;
-		restore)
-			[ -z "$command" ] && command="restore" || args=("${args[@]}" "${i%%/}")
 			;;
 		-b?)
 			action="$i"
