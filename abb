@@ -197,6 +197,12 @@ do_store() {
 	echo "  ${file}: ${sha}" >> "${abfyml}"
 }
 
+do_status() {
+	echo "Id Status Project Version SaveToRepository Architecture User"
+	lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
+		sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | tac
+}
+
 unset command
 declare -a args=()
 declare -a opts=()
@@ -212,6 +218,9 @@ for i in "$@"; do
 			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command="build"
 			action="${i/build/-b}"
+			;;
+		status)
+			command="status"
 			;;
 		-b?)
 			action="$i"
@@ -265,7 +274,7 @@ case "$command" in
 	clone)
 		[ ${#args[@]} -ne 1 ] && usage "command 'clone' takes one argument - project name"
 		;;
-	build|restore)
+	build|restore|status)
 		case ${#args[@]} in
 			0)
 				# believe that we are in a directory with the source
@@ -334,6 +343,9 @@ case "$command" in
 		;;
 	store)
 		do_store
+		;;
+	status)
+		do_status
 		;;
 	*)
 		usage "unknown command: $command"
