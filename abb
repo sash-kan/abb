@@ -261,6 +261,10 @@ for i in "$@"; do
 		rows=*)
 			rows=${i#rows=}
 			;;
+		*=*)
+			echo "unknown option: ${i}" | sed 's/=.*//'
+			exit 1
+			;;
 		*)
 			args=("${args[@]}" "${i%%/}")
 			;;
