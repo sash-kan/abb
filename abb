@@ -44,6 +44,8 @@ abfyml=".abf.yml"
 buildlog=yes
 # do restore after clone (always,ask,none)
 restore=always
+# limit rows of "status" output
+rows=4
 
 # get user settings
 # first look in ~/.abbrc
@@ -200,7 +202,8 @@ do_store() {
 do_status() {
 	echo "Id Status Project Version SaveToRepository Architecture User"
 	lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
-		sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | tac
+		sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | \
+		tac | tail -n ${rows}
 }
 
 unset command
@@ -254,6 +257,9 @@ for i in "$@"; do
 			;;
 		project=*)
 			args=("${args[@]}" "${i#project=}")
+			;;
+		rows=*)
+			rows=${i#rows=}
 			;;
 		*)
 			args=("${args[@]}" "${i%%/}")

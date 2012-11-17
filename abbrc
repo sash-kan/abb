@@ -29,3 +29,6 @@
 # do restore after clone (always,ask,none)
 #restore=always
 
+# limit rows of "status" output
+#rows=4
+
