@@ -329,7 +329,7 @@ case "$command" in
 		;;
 	build|restore)
 		[ -d "$project" ] && { cd "$project" || exit 1; }
-		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo "it seems that this directory does not contain the git repo";  exit 1; }
+		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo -n "it seems that this directory does not contain the project repo. "; yesno || return 1; }
 		do_${command}
 		;;
 	store)
