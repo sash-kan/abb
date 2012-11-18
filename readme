@@ -83,7 +83,7 @@ command "status" displays the status of the build tasks of your project on the
 server abf.rosalinux.ru
 option "rows" (default value 4) limit server output to specified number of
 rows.
-option "refresh" (default value 60) sets interval (in seconds) of refreshing
+option "refresh" (default value 120) sets interval (in seconds) of refreshing
 output.
 to run "status" only once, without refreshing, specify a value less than 60,
 zero for example.

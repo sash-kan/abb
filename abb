@@ -47,7 +47,7 @@ restore=always
 # limit rows of "status" output
 rows=4
 # interval (seconds) to refresh "status" output
-refresh=60
+refresh=120
 
 # get user settings
 # first look in ~/.abbrc

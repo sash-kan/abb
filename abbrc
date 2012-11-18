@@ -35,5 +35,5 @@
 # interval (in seconds) to refresh "status" output.
 # set it to 0 (refresh=0) to disable continuous refreshing and run "status"
 # only once
-#refresh=60
+#refresh=120
 
