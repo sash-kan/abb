@@ -79,3 +79,15 @@ $ abb clone rosa-release restore=ask
 restore files. is it ok? (Y|n):
 ...
 
+command "status" displays the status of the build tasks of your project on the
+server abf.rosalinux.ru
+option "rows" (default value 4) limit server output to specified number of
+rows.
+option "refresh" (default value 60) sets interval (in seconds) of refreshing
+output.
+to run "status" only once, without refreshing, specify a value less than 60,
+zero for example.
+examples:
+abb status
+abb status rows=1
+abb rows=1 refresh=0 status
