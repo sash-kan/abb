@@ -48,6 +48,8 @@ restore=always
 rows=4
 # interval (seconds) to refresh "status" output
 refresh=120
+# path to spec skeleton
+defaultspec=/usr/share/abb/spek.skel
 
 # get user settings
 # first look in ~/.abbrc
@@ -218,6 +220,27 @@ do_status() {
 	done
 }
 
+substvars() {
+	cat "$1" | sed -r 's/@@project@@/'${project}'/g' > $2
+	# another case, imho dangerous
+	#eval "echo \"$(< $1)\"" > $2
+}
+
+do_new() {
+	[ -d ${project} ] && { echo "directory '${project}' exists, not creating new project"; return 1; }
+	mkdir ${project}
+	pushd ${project} >/dev/null
+	if [ -r "${defaultspec}" ]; then
+		substvars "${defaultspec}" ${project}.spec
+	else
+		echo "can't read '${defaultspec}', not creating ${project}.spec"
+	fi
+	git init
+	echo "add remote 'origin'"
+	git remote add origin "${url}"
+	popd >/dev/null
+}
+
 unset command
 declare -a args=()
 declare -a opts=()
@@ -225,7 +248,7 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status)
+		clone|build|store|restore|status|new)
 			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command=${i%%/}
 			;;
@@ -276,6 +299,9 @@ for i in "$@"; do
 		refresh=*)
 			refresh=${i#refresh=}
 			;;
+		defaultspec=*)
+			defaultspec=${i#defaultspec=}
+			;;
 		*=*)
 			echo "unknown option: ${i}" | sed 's/=.*//'
 			exit 1
@@ -293,7 +319,7 @@ auth=${auth:+${auth}@}
 [ -z "$command" ] && usage "please specify a command"
 [ ${#args[@]} -eq 1 ] && project=${args[0]}
 case "$command" in
-	clone)
+	clone|new)
 		[ ${#args[@]} -ne 1 ] && usage "command 'clone' takes one argument - project name"
 		;;
 	build|restore|status)
@@ -355,8 +381,8 @@ print_args() {
 
 # let's start
 case "$command" in
-	clone)
-		do_clone
+	clone|new)
+		do_${command}
 		;;
 	build|restore)
 		[ -d "$project" ] && { cd "$project" || exit 1; }

@@ -37,3 +37,6 @@
 # only once
 #refresh=120
 
+# path to spec skeleton
+#defaultspec=/usr/share/abb/spek.skel
+

@@ -11,6 +11,7 @@ source0:	%{name}
 source1:	%{name}rc
 source2:	readme
 source3:	gpl-3.0.txt
+source4:	spek.skel
 
 requires:	bash
 
@@ -25,8 +26,11 @@ cp %{SOURCE1} .
 cp %{SOURCE2} .
 install -d %{buildroot}%{_bindir}
 install %{SOURCE0} %{buildroot}%{_bindir}/
+install -d %{buildroot}%{_datadir}/%{name}
+install %{SOURCE4} %{buildroot}%{_datadir}/%{name}/
 
 %files
 %defattr(-,root,root,-)
 %doc abbrc readme
 %{_bindir}/%{name}
+%{_datadir}/%{name}

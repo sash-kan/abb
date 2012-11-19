@@ -91,3 +91,17 @@ examples:
 abb status
 abb status rows=1
 abb rows=1 refresh=0 status
+
+command "new" creates new project:
+invocation: abb new <project>
+equivalent shell commands:
+1. mkdir <project>
+2. cd <project>
+3. cp <spec skeleton> <project>.spec
+4. git init
+5. git remote add origin <url of project git repo>
+default path to <spec skeleton> is /usr/share/abb/spek.skel.
+you can override it with option defaultspec=/path/to/your/file.
+while copying <spec skeleton>, abb replaces substring '@@project@@' with actual
+name of project.
+

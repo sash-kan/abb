@@ -1,0 +1,30 @@
+Name:           @@project@@
+Version:        
+Release:        1
+Summary:        
+Group:          
+License:        
+URL:            
+Source0:        
+BuildRequires:  
+Requires:       
+
+%description
+
+%prep
+%setup -q
+
+%build
+%configure2_5x
+%make
+
+%install
+%makeinstall_std
+
+%check
+
+%files
+%defattr(-,root,root,-)
+%doc
+
+%changelog
