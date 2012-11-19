@@ -1,15 +1,21 @@
 abf local build script
 
 usage:
-$ abb <command> [<project name>]
-$ abb store <file name>
+$ abb <command> [<project name> ...]
+$ abb clone <project name> ...
+$ abb new <project name>
+$ abb store <file name> ...
+$ abb status [<project name>]
+$ abb view [<project name>|<build_list id>]
 
-supported commands:
-clone
+where <command>:
 build, builda, buildb, buildp... (see below)
 restore
 
-<project name> can be omitted for command "build*" if we are in the project dir
+<project name> can be omitted for commands "build*", "restore", "status" and
+"view" if we are in the project dir.
+
+commands "build*", "clone", "store", "restore" accepts multiple args.
 
 conffiles:
 first script looking for ~/.abbrc
@@ -33,6 +39,9 @@ auth=
 abfyml=.abf.yml
 buildlog=yes
 restore=always
+rows=4
+refresh=120
+defaultspec=/usr/share/abb/spek.skel
 
 you can also override any option in command-line
 in form <option>=<value> like there:
@@ -44,9 +53,10 @@ $ abb clone rosa-release branch=import_cooker
 
 
 $ abb build rosa-release
-in this case script tries to determine whether project already cloned
-if not - he clones the project
-then he tries to build project
+in this case script tries to determine whether project already clonead
+if not - he clones the project.
+then he tries to download tarballs from storage.
+then he tries to build project.
 
 you can add suffix to command "build":
 builda - like -ba option to rpmbuild
@@ -54,19 +64,23 @@ buildb - like -bb option to rpmbuild (by default)
 buildp - like -bp option to rpmbuild
 and so forth
 
+you can specify options, that command "build" transfers to rpmbuild
+for example:
+$ abb buildi --short-circuit
+
 command "store":
-"store" tries to upload file to abf storage: http://file-store.rosalinux.ru.
+"store" tries to upload file(s) to abf storage: http://file-store.rosalinux.ru.
 now this service requires authentication to upload files.
 authentication is the same as on the https://abf.rosalinux.ru.
-"store" requires one argument - name of file to store.
+"store" requires one or more arguments - names of files to store.
 "store" must be run in the project directory.
 
 command "restore":
 "restore" - opposite to "store".
 if "restore" is running in the project directory, it does not require any
 arguments.
-otherwise requires one argument - the name of the project (or rather the
-project directory), similar to "build" or "clone".
+otherwise requires one or more arguments - the names of the projects (or rather
+the project directory), similar to "build" or "clone".
 
 command "clone" and option "restore=[always|ask|none|]":
 now by default abb tries to download files right after "clone".
@@ -104,4 +118,10 @@ default path to <spec skeleton> is /usr/share/abb/spek.skel.
 you can override it with option defaultspec=/path/to/your/file.
 while copying <spec skeleton>, abb replaces substring '@@project@@' with actual
 name of project.
+
+command "view" requires zero or one args.
+zero: run "w3m http://abf.rosalinux.ru/<owner>/<project>"
+one:
+if arg is numeric, run "w3m http://abf.rosalinux.ru/build_lists/<arg>"
+if arg is not numeric, run "w3m http://abf.rosalinux.ru/<owner>/<arg>"
 

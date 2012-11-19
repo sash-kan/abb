@@ -75,86 +75,121 @@ EOT
 
 yesno() {
 	local cont
-	read -p "is it ok? (Y|n): " cont
+	read -p "$@ is it ok? (Y|n): " cont
 	[ "${cont}" == "" -o "${cont}" == "y" -o "${cont}" == "Y" ] && return 0
 	return 1
 }
 
+get_project_from_curdir() {
+	# believe that we are in a directory with the source
+	#project=$(basename $PWD)
+	# more smart method
+	# 1. try git
+	project=$(git config remote.origin.url | sed -rn '/.*'${owner}'\/[^\/]*$/{s/\.git$//;s!^.*/!!;p}')
+	if [ -n "${project}" ]; then
+		[ "${silent}" == "1" ] || echo "assume project name from git url: ${project}"
+	elif [ $(ls *.spec 2>/dev/null | wc -l) -eq 1 ]; then
+		# 2. try spec name
+		project=$(basename $(ls *.spec) .spec)
+		[ "${silent}" == "1" ] || echo "assume project name from spec-file name: ${project}"
+	elif [ $# -eq 1 -a "$1" == "nodir" ]; then
+		:
+	else
+		# 3. assume that project == current dir
+		project=$(basename $PWD)
+		[ "${silent}" == "1" ] || echo "assume project name from name of curdir: ${project}"
+	fi
+}
+
 do_restore() {
+	if [ ${in_proj_dir} -eq 0 ]; then
+		pushd "$project" >/dev/null || return 1
+	fi
 	local file sha
 	echo "try to restore files from abf storage"
 	if [ "${abfyml}" == "" ]; then
 		echo "error: name of abf yml file not specified"
 		echo "for example:"
 		echo "$0 $command abfyml=.abf.yml"
-		return 1
-	fi
-	if [ -e "${abfyml}" ]; then
-		echo "parsing file '${abfyml}'"
-		sed -rn 's/^[\"'\''[:space:]]*([^[:space:]:\"'\'']+)[\"'\''[:space:]]*.*[\"'\''[:space:]]*([0-9a-fA-F]{40})[\"'\''[:space:]]*$/\1 \2/p' ${abfyml} | \
-		while read file sha; do
-			#echo -n "found entry: file=${file} sha1sum=${sha} ... "
-			echo -n "found entry: file=${file} ... "
-			if [ -e ${file} ]; then
-				if echo "${sha}  ${file}" | sha1sum -c --status; then
-					echo "ok"
-				else
-					echo "sha1sum INCORRECT! skipping..."
-				fi
-			else
-				echo -n "try to download... "
-				if wget -qO - "http://file-store.rosalinux.ru/download/${sha}" > "${file}"; then
-					echo "ok"
-					echo -n "check sum... "
+	else
+		if [ -e "${abfyml}" ]; then
+			echo "parsing file '${abfyml}'"
+			sed -rn 's/^[\"'\''[:space:]]*([^[:space:]:\"'\'']+)[\"'\''[:space:]]*.*[\"'\''[:space:]]*([0-9a-fA-F]{40})[\"'\''[:space:]]*$/\1 \2/p' ${abfyml} | \
+			while read file sha; do
+				#echo -n "found entry: file=${file} sha1sum=${sha} ... "
+				echo -n "found entry: file=${file} ... "
+				if [ -e ${file} ]; then
 					if echo "${sha}  ${file}" | sha1sum -c --status; then
 						echo "ok"
 					else
 						echo "sha1sum INCORRECT! skipping..."
 					fi
 				else
-					echo "filed! skipping..."
+					echo -n "try to download... "
+					if wget -qO - "http://file-store.rosalinux.ru/download/${sha}" > "${file}"; then
+						echo "ok"
+						echo -n "check sum... "
+						if echo "${sha}  ${file}" | sha1sum -c --status; then
+							echo "ok"
+						else
+							echo "sha1sum INCORRECT! skipping..."
+						fi
+					else
+						echo "filed! skipping..."
+					fi
 				fi
-			fi
-		done
+			done
+		fi
 	fi
-
+	if [ ${in_proj_dir} -eq 0 ]; then
+		popd >/dev/null
+	fi
 }
 
 do_clone() {
-	git clone "$url" && [ -d "$project" ] && cd "$project" || exit 2
+	url="${projurl}/${project}.git"
+	git clone "$url" || return 1
+	[ -d "$project" ] || return 1
+	pushd "$project" >/dev/null
 	if [ -n "$branch" ]; then
 		echo "try to checkout to branch '$branch' of remote '$remote'" 
-		git checkout -t "$remote/$branch" || exit 2
+		git checkout -t "$remote/$branch"
 	fi
-
-	if [ "${restore}" == "always" -o "${restore}" == "ask" ]; then
-		if [ "${restore}" == "ask" ]; then
-			echo -n "restore files. "
-			yesno || return
-		fi
-		do_restore
+	if [ "${restore}" == "always" ]; then
+		in_proj_dir=1 do_restore
+	elif [ "${restore}" == "ask" ] && yesno "restore files."; then
+		in_proj_dir=1 do_restore
 	fi
+	popd >/dev/null
 }
 
 do_build() {
-	echo "try to build"
-	#echo ${opts[@]}; exit
+	if [ ${in_proj_dir} -eq 0 ]; then
+		pushd "$project" >/dev/null || return 1
+	fi
+	in_proj_dir=1 do_restore
+	echo "try to build ${project}"
 	local d=$PWD
 	local spec=(*.spec)
-	[ ${#spec[@]} -ne 1 ] && { echo "one and only one spec required in current dir"; exit 2; }
-
-	local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
-	if [ "${buildlog}" == "yes" ]; then
-		local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
-		eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
-		echo "build log is saved in ${logname}"
+	if [ ${#spec[@]} -eq 1 ]; then
+		local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
+		if [ "${buildlog}" == "yes" ]; then
+			local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
+			eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
+			echo "build log is saved in ${logname}"
+		else
+			eval $cmd $action "${opts[@]}"
+		fi
 	else
-		eval $cmd $action "${opts[@]}"
+		echo "one and only one spec required in current dir"
+	fi
+	if [ ${in_proj_dir} -eq 0 ]; then
+		popd >/dev/null
 	fi
 }
 
 do_store() {
-	local file=${args[0]}
+	local file=${project}
 	if [ "${abfyml}" == "" ]; then
 		echo "error: name of abf yml file not specified"
 		echo "for example:"
@@ -211,7 +246,8 @@ do_status() {
 	fi
 	echo "Id Status Project Version SaveToRepository Architecture User"
 	while true; do
-		out2=$(lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
+		#out2=$(lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
+		out2=$(lynx -dump "${projurl}/${project}/build_lists" | \
 			sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | \
 			tac | tail -n ${rows})
 		comm --nocheck-order -1 -3 <(echo "${out}") <(echo "${out2}")
@@ -227,6 +263,7 @@ substvars() {
 }
 
 do_new() {
+	url="${projurl}/${project}.git"
 	[ -d ${project} ] && { echo "directory '${project}' exists, not creating new project"; return 1; }
 	mkdir ${project}
 	pushd ${project} >/dev/null
@@ -241,6 +278,27 @@ do_new() {
 	popd >/dev/null
 }
 
+do_view() {
+	if [[ ${project} =~ ^[0-9]+$ ]]; then
+		# number - assume it is build list id
+		w3m "https://abf.rosalinux.ru/build_lists/${project}"
+	else
+		# not number - assume it is name of project
+		w3m "${projurl}/${project}"
+	fi
+}
+
+main_case() {
+	case "$command" in
+		clone|store|status|new|view|build|restore)
+			do_${command}
+			;;
+		*)
+			usage "unknown command: $command"
+			;;
+	esac
+}
+
 unset command
 declare -a args=()
 declare -a opts=()
@@ -248,7 +306,7 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status|new)
+		clone|build|store|restore|status|new|view)
 			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command=${i%%/}
 			;;
@@ -317,51 +375,72 @@ auth=${auth:+${auth}@}
 
 # check arguments
 [ -z "$command" ] && usage "please specify a command"
-[ ${#args[@]} -eq 1 ] && project=${args[0]}
+#[ ${#args[@]} -eq 1 ] && project=${args[0]}
+
+# assume we are not in proj dir
+in_proj_dir=0
+
+projurl=${proto}://${auth}${server}/${owner}
+
 case "$command" in
 	clone|new)
-		[ ${#args[@]} -ne 1 ] && usage "command 'clone' takes one argument - project name"
+		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - project name"
 		;;
-	build|restore|status)
+	build|restore)
 		case ${#args[@]} in
 			0)
-				# believe that we are in a directory with the source
-				#project=$(basename $PWD)
-				# more smart method
-				# 1. try git
-				project=$(git config remote.origin.url | sed -rn '/.*'${owner}'\/[^\/]*$/{s/\.git$//;s!^.*/!!;p}')
-				if [ -n "${project}" ]; then
-					echo "assume project name from git url: ${project}"
-				else
-					# 2. try spec name
-					if [ $(ls *.spec 2>/dev/null | wc -l) -eq 1 ]; then
-						project=$(basename $(ls *.spec) .spec)
-						echo "assume project name from spec-file name: ${project}"
-					else
-						# 3. assume that project == current dir
-						project=$(basename $PWD)
-						echo "assume project name from name of curdir: ${project}"
-					fi
-				fi
+				get_project_from_curdir
+				[ -z "${project}" ] && usage "can't determine project name"
+				args=(${project})
 				;;
 			1)
-				[ -d "${args[0]}" -o "$(basename $PWD)" == "${args[0]}" -a -d .git -a -f *.spec ] || { echo "directory '${args[0]}' does not exist, so try to clone first"; \
-					do_clone || exit 1; }
+				# silently check if we are in specified project dir
+				silent=1 get_project_from_curdir nodir
+				if [ -n "${project}" ]; then
+					if [ "${project}" == "${args[0]}" ]; then
+						in_proj_dir=1
+					else
+						echo "you specify project '${args[0]}', but it seems that we are in dir of project '${project}'"
+						echo -n "so we clone project '${args[0]}'. "
+						yesno || exit 1
+					fi
+				fi
+				# if we are out of project dir, clone repo first
+				if [ ${in_proj_dir} -eq 0 -a ! -d ${args[0]} ]; then
+					restore=none project=${args[0]} do_clone || exit 1
+				fi
 				;;
 			*)
-				usage "command '${command}' needs no arguments - assume we are in dir with sources\nor one argument - dir with sources"
+				for project in "${args[@]}"; do
+					if [ ! -d "${project}" ]; then
+						restore=none do_clone
+					fi
+				done
+				;;
+		esac
+		;;
+	status|view)
+		case ${#args[@]} in
+			0)
+				get_project_from_curdir
+				[ -z "${project}" ] && usage "can't determine project name"
+				args=(${project})
+				;;
+			1)
+				# silently check if we are in specified project dir
+				;;
+			*)
+				usage "command '${command}' requires zero ore one argument"
 				;;
 		esac
 		;;
 	store)
-		[ ${#args[@]} -ne 1 ] && usage "command 'store' takes one argument - file name"
+		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - file name"
 		;;
 	*)
 		usage "unknown command: $command"
 		;;
 esac
-
-url=${proto}://${auth}${server}/${owner}/${project}.git
 
 # need for debug only
 print_args() {
@@ -380,22 +459,11 @@ print_args() {
 #print_args; exit
 
 # let's start
-case "$command" in
-	clone|new)
-		do_${command}
-		;;
-	build|restore)
-		[ -d "$project" ] && { cd "$project" || exit 1; }
-		[ "$(basename $PWD)" == "$project" -a -d .git -a -f *.spec ] || { echo -n "it seems that this directory does not contain the project repo. "; yesno || return 1; }
-		do_${command}
-		;;
-	store)
-		do_store
-		;;
-	status)
-		do_status
-		;;
-	*)
-		usage "unknown command: $command"
-		;;
-esac
+if [ ${#args[@]} -eq 0 ]; then
+	main_case
+else
+	for project in "${args[@]}"; do
+		in_proj_dir=0
+		main_case
+	done
+fi
