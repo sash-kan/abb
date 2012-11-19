@@ -391,7 +391,7 @@ case "$command" in
 			0)
 				get_project_from_curdir
 				[ -z "${project}" ] && usage "can't determine project name"
-				args=(${project})
+				in_proj_dir=1
 				;;
 			1)
 				# silently check if we are in specified project dir
