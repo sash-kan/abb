@@ -281,16 +281,25 @@ do_new() {
 do_view() {
 	if [[ ${project} =~ ^[0-9]+$ ]]; then
 		# number - assume it is build list id
-		w3m "https://abf.rosalinux.ru/build_lists/${project}"
+		w3m "https://${auth}abf.rosalinux.ru/build_lists/${project}"
 	else
 		# not number - assume it is name of project
 		w3m "${projurl}/${project}"
 	fi
 }
 
+do_publish() {
+	local reply=$(wget -qO - https://${auth}abf.rosalinux.ru/api/v1/build_lists/${project}/publish.json)
+	if [ -n "${reply}" ]; then
+		echo "${reply}" | abb.json.sh | sed -rn 's/^\["message"\][[:space:]]*"(.*)"[[:space:]]*$/'${project}': \1/p'
+	else
+		echo "${project}: ERROR server returns empty reply. check build id with 'abb status [<project>]'"
+	fi
+}
+
 main_case() {
 	case "$command" in
-		clone|store|status|new|view|build|restore)
+		clone|store|status|new|view|build|restore|publish)
 			do_${command}
 			;;
 		*)
@@ -306,7 +315,7 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status|new|view)
+		clone|build|store|restore|status|new|view|publish)
 			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command=${i%%/}
 			;;
@@ -436,6 +445,9 @@ case "$command" in
 		;;
 	store)
 		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - file name"
+		;;
+	publish)
+		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - build_list id"
 		;;
 	*)
 		usage "unknown command: $command"

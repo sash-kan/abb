@@ -7,6 +7,7 @@ $ abb new <project name>
 $ abb store <file name> ...
 $ abb status [<project name>]
 $ abb view [<project name>|<build_list id>]
+$ abb publish <build_list id> ...
 
 where <command>:
 build, builda, buildb, buildp... (see below)
@@ -124,4 +125,7 @@ zero: run "w3m http://abf.rosalinux.ru/<owner>/<project>"
 one:
 if arg is numeric, run "w3m http://abf.rosalinux.ru/build_lists/<arg>"
 if arg is not numeric, run "w3m http://abf.rosalinux.ru/<owner>/<arg>"
+
+command "publish" send to abf.rosalinux.ru request to publish specified build
+lists.
 
