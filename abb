@@ -216,7 +216,7 @@ do_store() {
 	else
 		echo "no"
 		echo "try to store file ${file}"
-		local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/file_stores)
+		local curloutput=$(curl -s -X POST -F "file_store[file]=@${file}" http://${auth}file-store.rosalinux.ru/api/v1/upload)
 
 		echo -n "check if file stored correctly... "
 		if wget -q --spider http://file-store.rosalinux.ru/download/${sha}; then
