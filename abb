@@ -172,7 +172,7 @@ do_build() {
 	local d=$PWD
 	local spec=(*.spec)
 	if [ ${#spec[@]} -eq 1 ]; then
-		local cmd="rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
+		local cmd="mkdir -p ${d}/BUILD; rpmbuild --define '_topdir ${d}' --define '_sourcedir ${d}' ${spec}"
 		if [ "${buildlog}" == "yes" ]; then
 			local logname="${project}.${action}.$(/bin/date +%Y%m%d-%H%M%S.$(printf %05d $$)).$(hostname -s).buildlog"
 			eval $cmd $action "${opts[@]}" 2>&1 | tee ${logname}
