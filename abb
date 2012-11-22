@@ -235,6 +235,8 @@ do_store() {
 		echo "sources:" >> "${abfyml}"
 	fi
 	echo "adding line to '${abfyml}'"
+	# fix missing newline at end of .abf.yml
+	sed -i '$a\' "${abfyml}"
 	echo "  ${file}: ${sha}" >> "${abfyml}"
 }
 
