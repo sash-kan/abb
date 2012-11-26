@@ -299,9 +299,32 @@ do_publish() {
 	fi
 }
 
+do_vars() {
+	local varslist="proto server owner branch remote abfyml buildlog restore project rows refresh defaultspec"
+	local varslistcase="${varslist[@]// /|}"
+	local vars
+	if [ ${#args[@]} -eq 0 ]; then
+		vars=( $varslist )
+	else
+		vars=( "${args[@]}" )
+	fi
+	for i in "${vars[@]}"; do
+		case "$i" in
+			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec)
+				echo "$i=${!i}"
+				;;
+			auth)
+				echo "$i=${!i%@}"
+				;;
+			*)
+				;;
+		esac
+	done | sort
+}
+
 main_case() {
 	case "$command" in
-		clone|store|status|new|view|build|restore|publish)
+		clone|store|status|new|view|build|restore|publish|vars)
 			do_${command}
 			;;
 		*)
@@ -317,7 +340,7 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status|new|view|publish)
+		clone|build|store|restore|status|new|view|publish|vars)
 			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
 			command=${i%%/}
 			;;
@@ -451,6 +474,8 @@ case "$command" in
 	publish)
 		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - build_list id"
 		;;
+	vars)
+		;;
 	*)
 		usage "unknown command: $command"
 		;;
@@ -473,7 +498,7 @@ print_args() {
 #print_args; exit
 
 # let's start
-if [ ${#args[@]} -eq 0 ]; then
+if [ ${#args[@]} -eq 0 -o "${command}" == "vars" ]; then
 	main_case
 else
 	for project in "${args[@]}"; do
