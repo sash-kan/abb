@@ -18,7 +18,12 @@ source7:	license.mit
 source8:	abb.bash_completion
 
 requires:	bash
-requires:	git
+requires:	git-core
+requires:	w3m
+requires:	curl
+requires:	lynx
+requires:	wget
+requires:	rpm-build
 
 buildarch:	noarch
 
