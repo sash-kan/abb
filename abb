@@ -341,13 +341,21 @@ declare -a opts=()
 for i in "$@"; do
 	case "$i" in
 		clone|build|store|restore|status|new|view|publish|vars)
-			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
-			command=${i%%/}
+			if [ "${command}" == "vars" ]; then
+				args=("${args[@]}" "${i%%/}")
+			else
+				[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
+				command=${i%%/}
+			fi
 			;;
 		build?)
-			[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
-			command="build"
-			action="${i/build/-b}"
+			if [ "${command}" == "vars" ]; then
+				args=("${args[@]}" "${i%%/}")
+			else
+				[ -n "${command}" ] && usage "only one command at a time supported, but you want: ${command} and ${i%%/}"
+				command="build"
+				action="${i/build/-b}"
+			fi
 			;;
 		-b?)
 			action="$i"

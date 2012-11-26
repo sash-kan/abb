@@ -1,0 +1,139 @@
+# bash completion for abb
+
+_have abb && {
+	_abb() {
+		local commands cur prev words cword specs IFS sifs=$IFS
+		local rpmbuildopts ncur varvalue branch updatetypes
+
+		COMPREPLY=()
+
+		_get_comp_words_by_ref -n '=' cur prev words cword
+
+		#echo "cword=$cword cur='$cur' '${words[@]}'" >> /tmp/log
+
+		specs=$(basename -s .spec $(ls *.spec 2>/dev/null) 2>/dev/null)
+
+		commands="build
+			clone
+			new
+			publish
+			restore
+			status
+			store
+			vars
+			view"
+
+		rpmbuildopts="-ba
+			-bb
+			-bc
+			-bi
+			-bl
+			-bp
+			-bs
+			--short-circuit"
+
+		opts="proto= server= owner= branch= remote= auth= abfyml= buildlog= \
+			restore= project= rows= refresh= defaultspec= arch= platform= updatetype= commit="
+
+		updatetypes="security bugfix enhancement recommended newpackage"
+
+		if [ $cword -eq 1 ]; then
+			IFS=$'\t'$'\n'
+			COMPREPLY=( $( compgen -W "$commands" -S ' ' -- "$cur" ) )
+			IFS=$sifs
+			return 0
+		fi
+
+		if [[ "$cur" == -* ]]; then
+			IFS=$'\t'$'\n'
+			COMPREPLY=( $( compgen -W "$rpmbuildopts" -S ' ' -- "$cur" ) )
+			IFS=$sifs
+			return 0
+		fi
+
+		if [[ "$cur" == *=* ]]; then
+			ncur=${cur#*=}
+			varvalue="$(abb vars ${cur%=*})"
+			varvalue="${varvalue[@]##*=}"
+			case "$cur" in
+				proto=*)
+					COMPREPLY=( $( compgen -W "http https $varvalue" -- "$ncur" ) )
+					;;
+				server=*)
+					COMPREPLY=( $( compgen -W "abf.rosalinux.ru $varvalue" -- "$ncur" ) )
+					;;
+				owner=*)
+					COMPREPLY=( $( compgen -W "import npp_team tigro $varvalue" -- "$ncur" ) )
+					;;
+				branch=*)
+					COMPREPLY=( $( compgen -W "master rosa2012lts rosa2012.1 import_cooker import_mandriva2011 $varvalue" -- "$ncur" ) )
+					;;
+				remote=*)
+					COMPREPLY=( $( compgen -W "origin $varvalue" -- "$ncur" ) )
+					;;
+				auth=*)
+					COMPREPLY=( $( compgen -W "$varvalue" -- "$ncur" ) )
+					;;
+				abfyml=*)
+					COMPREPLY=( $( compgen -W ".abf.yml $varvalue" -- "$ncur" ) )
+					;;
+				buildlog=*)
+					COMPREPLY=( $( compgen -W "yes no $varvalue" -- "$ncur" ) )
+					;;
+				restore=*)
+					COMPREPLY=( $( compgen -W "always ask none $varvalue" -- "$ncur" ) )
+					;;
+				project=*)
+					COMPREPLY=( $( compgen -d -W "$specs $varvalue" -- "$cur" ) )
+					;;
+				rows=*)
+					COMPREPLY=( $( compgen -W "4 $varvalue" -- "$ncur" ) )
+					;;
+				refresh=*)
+					COMPREPLY=( $( compgen -W "120 $varvalue" -- "$ncur" ) )
+					;;
+				defaultspec=*)
+					COMPREPLY=( $( compgen -W "/usr/share/abb/spek.skel $varvalue" -- "$ncur" ) )
+					;;
+				arch=*)
+					COMPREPLY=( $( compgen -W "i586,x86_64 i586 x86_64 $varvalue" -- "$ncur" ) )
+					;;
+				platform=*)
+					varvalue="$(abb vars ${cur%=*} branch)"
+					varvalue="${varvalue[@]##*=}"
+					COMPREPLY=( $( compgen -W "$branch $varvalue" -- "$ncur" ) )
+					;;
+				updatetype=*)
+					COMPREPLY=( $( compgen -W "$updatetypes $varvalue" -- "$ncur" ) )
+					;;
+			esac
+			return 0
+		fi
+
+		case "${words[1]}" in
+			build*|restore|status|view)
+				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
+					$( compgen -W "$opts" -- "$cur" ) )
+				return 0
+				;;
+			clone|new)
+				COMPREPLY=( $( compgen -d -W "$opts" -- "$cur" ) )
+				return 0
+				;;
+			store)
+				COMPREPLY=( $( compgen -f -W "$opts" -- "$cur" ) )
+				return 0
+				;;
+			publish)
+				COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+				return 0
+				;;
+			vars)
+				varvalue=${opts//=/}
+				COMPREPLY=( $( compgen -W "${varvalue}" -S ' ' -- "$cur" ) )
+				return 0
+				;;
+		esac
+	}
+	complete -o nospace -o default -F _abb abb
+}
