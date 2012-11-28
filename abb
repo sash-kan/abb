@@ -235,7 +235,7 @@ do_store() {
 	fi
 	if [ ! -e "${abfyml}" ]; then
 		echo "${abfyml} not exist, create one"
-		echo "---" > "${abfyml}"
+		#echo "---" > "${abfyml}"
 		echo "sources:" >> "${abfyml}"
 	fi
 	echo "adding line to '${abfyml}'"
