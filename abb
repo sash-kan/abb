@@ -147,7 +147,7 @@ do_restore() {
 }
 
 do_clone() {
-	url="${projurl}/${project}.git"
+	local url="${projurl}/${project}.git"
 	git clone "$url" || return 1
 	[ -d "$project" ] || return 1
 	pushd "$project" >/dev/null
@@ -269,7 +269,7 @@ substvars() {
 }
 
 do_new() {
-	url="${projurl}/${project}.git"
+	local url="${projurl}/${project}.git"
 	[ -d ${project} ] && { echo "directory '${project}' exists, not creating new project"; return 1; }
 	mkdir ${project}
 	pushd ${project} >/dev/null
@@ -492,22 +492,6 @@ case "$command" in
 		usage "unknown command: $command"
 		;;
 esac
-
-# need for debug only
-print_args() {
-	echo "args:"
-	for i in "${args[@]}"; do
-		echo $i
-	done
-	echo "opts:"
-	for i in "${opts[@]}"; do
-		echo $i
-	done
-	echo "command=$command"
-	echo "action=$action"
-	echo "url=$url"
-}
-#print_args; exit
 
 # let's start
 if [ ${#args[@]} -eq 0 -o "${command}" == "vars" ]; then
