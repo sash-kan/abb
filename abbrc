@@ -40,3 +40,34 @@
 # path to spec skeleton
 #defaultspec=/usr/share/abb/spek.skel
 
+# build arch
+#arch="i586,x86_64"
+
+# platform
+#platform="rosa2012.1"
+
+# repos to include from platform (f.e. "repos=main,contrib")
+#repos=
+
+# update type (security bugfix enhancement recommended newpackage)
+#updatetype=security
+
+# hash of commit to remote build
+#commit=
+
+# auto publish (true|false)
+#publish=false
+
+# rebuild a package with all its reverse dependencies (true|false)
+#withrequired=false
+
+# repo to save
+# in form "platform/repo"
+# f.e.:
+# "username_personal/main" (simply "personal")
+# "rosa2012.1/contrib" (simply "rosa2012.1"
+# if project default repo is "contrib" for platform "rosa2012.1")
+#reposave=
+
+# server api part
+#serverapi=api/v1

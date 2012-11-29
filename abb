@@ -50,6 +50,29 @@ rows=4
 refresh=120
 # path to spec skeleton
 defaultspec=/usr/share/abb/spek.skel
+# build arch
+arch="i586,x86_64"
+# platform
+platform="rosa2012.1"
+# repos to include from platform (f.e. "repos=main,contrib")
+repos=
+# update type (security bugfix enhancement recommended newpackage)
+updatetype=security
+# hash of commit to remote build
+commit=
+# auto publish (true|false)
+publish=false
+# rebuild a package with all its reverse dependencies (true|false)
+withrequired=false
+# repo to save
+# in form "platform/repo"
+# f.e.:
+# "username_personal/main" (simply "personal")
+# "rosa2012.1/contrib" (simply "rosa2012.1"
+# if project default repo is "contrib" for platform "rosa2012.1")
+reposave=
+# server api part
+serverapi=api/v1
 
 # get user settings
 # first look in ~/.abbrc
@@ -303,8 +326,289 @@ do_publish() {
 	fi
 }
 
+do_send() {
+
+	debug=${debug:-0}
+	local i
+	allrepos=(main contrib non-free restricted testing extra test nightly base)
+	arches=($(echo ${arch} | sed -r 's/,+/ /'))
+	platform=${platform:-${branch}}
+	[ "${debug}" -gt 0 ] && echo "platform: '${platform}'"
+
+
+  #\"auto_publish\": ${auto_publish},
+
+	local auto_publish=false
+	[ "${publish}" == "true" ] && auto_publish=true
+	[ "${debug}" -gt 0 ] && echo "auto_publish: ${auto_publish}"
+
+
+  #\"build_requires\": ${withrequired},
+
+	local build_requires=false
+	[ "${withrequired}" == "true" ] && build_requires=true
+	[ "${debug}" -gt 0 ] && echo "build_requires: ${build_requires}"
+
+
+	#\"update_type\": \"${update_type}\",
+
+	update_types=(security bugfix enhancement recommended newpackage)
+	for i in "${update_types[@]}"; do
+		if [ "${updatetype}" == "$i" ]; then
+			update_type="${i}"
+			break
+		fi
+	done
+	update_type=${update_type:-security}
+	[ "${debug}" -gt 0 ] && echo "update_type: ${update_type}"
+
+
+  #\"project_id\": ${project_id},
+
+	local project_id=$(wget -qO - \
+		${apiurl}'/projects/get_id.json?name='${project}'&owner='${owner} |\
+		abb.json.sh |\
+		sed -rn 's/^\["project","id"\][[:space:]]+([0-9]+)[[:space:]]*$/\1/p')
+	if [ -z "${project_id}" ]; then
+		echo "cant retrieve project '${owner}/${project}' id"
+	else
+		[ "${debug}" -gt 0 ] && echo "project_id: ${project_id}"
+
+
+		#\"commit_hash\": \"${commit_hash}\",
+
+		local commit_hash=$(echo "${commit}" | sed -rn 's/^([0-9a-zA-Z]{40})$/\1/p')
+
+		if [ -z "${commit_hash}" ]; then
+			local all_project_refs=$(wget -qO - \
+				${apiurl}'/projects/'${project_id}'/refs_list.json' |\
+				abb.json.sh)
+			[ "${debug}" -gt 1 ] && echo "all_project_refs: ${all_project_refs}"
+			local branch_num=$(echo "${all_project_refs}" |\
+				sed -rn 's/^\["refs_list",([0-9]+),"ref"\][[:space:]]*"?'${branch}'"?[[:space:]]*$/\1/p')
+			[ "${debug}" -gt 0 ] && echo "branch_num: ${branch_num}"
+			local commit_hash=$(echo "${all_project_refs}" |\
+				sed -rn 's/^\["refs_list",'${branch_num}',"object","sha"\][[:space:]]*"?([0-9a-zA-Z]+)"?[[:space:]]*$/\1/p')
+		fi
+
+		if [ -z "${commit_hash}" ]; then
+			echo "do not know commit hash"
+		else
+			[ "${debug}" -gt 0 ] && echo "commit_hash: ${commit_hash}"
+
+
+
+			#\"build_for_platform_id\": ${build_for_platform_id},
+
+			local platforms_for_build=$(wget -qO - \
+				${apiurl}'/platforms/platforms_for_build.json' |\
+				abb.json.sh)
+			[ "${debug}" -gt 1 ] && echo "platforms_for_build: ${platforms_for_build}"
+			local platform_for_build_num=$(echo "${platforms_for_build}" |\
+				sed -rn 's/^\["platforms",([0-9]+),"name"\][[:space:]]+"?'${platform}'"?[[:space:]]*$/\1/p')
+			[ "${debug}" -gt 0 ] && echo "platform_for_build_num: ${platform_for_build_num}"
+			local build_for_platform_id=$(echo "${platforms_for_build}" |\
+				sed -rn 's/^\["platforms",'${platform_for_build_num}',"id"\][[:space:]]+([0-9]+)[[:space:]]*$/\1/p')
+			if [ -z "${build_for_platform_id}" ]; then
+				echo "do not know platform for build"
+			else
+				[ "${debug}" -gt 0 ] && echo "build_for_platform_id: ${build_for_platform_id}"
+
+
+				#\"save_to_repository_id\": ${save_to_repository_id},
+
+				local all_project_info=$(wget -qO - \
+					${apiurl}'/projects/'${project_id}'.json' |\
+					abb.json.sh)
+
+				local save_to_repository_id
+				local save_to_repository_name
+				if [ -z "${reposave}" ]; then
+					# repo not specified
+
+					local platform_repo_num=$(echo "${all_project_info}" |\
+						sed -rn 's/^\["project","repositories",([0-9]+),"platform","name"\][[:space:]]+"?'${platform}'"?[[:space:]]*$/\1/p' |\
+						head -n 1)
+					[ "${debug}" -gt 0 ] && echo "platform_repo_num: ${platform_repo_num}"
+
+					save_to_repository_id=$(echo "${all_project_info}" |\
+						sed -rn 's/^\["project","repositories",'${platform_repo_num}',"id"\][[:space:]]+([0-9]+)[[:space:]]*$/\1/p')
+					save_to_repository_name=$(echo "${all_project_info}" |\
+						sed -rn 's/^\["project","repositories",'${platform_repo_num}',"name"\][[:space:]]+"?([-_.[:alnum:]]+)"?[[:space:]]*$/\1/p')
+					[ "${debug}" -gt 0 ] && echo "save_to_repository_name: ${save_to_repository_name}"
+
+					# check if we can save to this repo
+					local save_to_repo_in_platforms_for_build=$(echo "${platforms_for_build}" |\
+						sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",[0-9]+,"id"\][[:space:]]+('${save_to_repository_id}')[[:space:]]*$/\1/p')
+				else
+					# repo to save is specified
+					[ "${debug}" -gt 0 ] && echo "repo specified: ${reposave}"
+					# split $repo into parts
+					local split_repo_platform=${reposave%\/*}
+					local split_repo_repo=${reposave#${split_repo_platform}}
+					split_repo_repo=${split_repo_repo#/}
+					# add pattern
+					local split_repo_platform_withp=${split_repo_platform}
+					if [ "${split_repo_platform}" == "personal" ]; then
+						split_repo_platform_withp='[-_.[:alnum:]]+_'${split_repo_platform}
+						if [ -z "${split_repo_repo}" ]; then
+							split_repo_repo=master
+						fi
+					fi
+					[ "${debug}" -gt 0 ] && echo "split_repo_platform: ${split_repo_platform}"
+					[ "${debug}" -gt 0 ] && echo "split_repo_repo: ${split_repo_repo}"
+					local split_repo_num=$(echo "${all_project_info}" |\
+						sed -rn 's/^\["project","repositories",([0-9]+),"platform","name"\][[:space:]]"?'${split_repo_platform_withp}'"?[[:space:]]*$/\1/p')
+					[ "${debug}" -gt 0 ] && echo "split_repo_num: ${split_repo_num}"
+					local split_repo_name=$(echo "${all_project_info}" |\
+						sed -rn 's/^\["project","repositories",'${split_repo_num}',"name"\][[:space:]]+"?([-_.[:alnum:]]+)"?[[:space:]]*$/\1/p')
+					if [ -n "${split_repo_repo}" -a "${split_repo_repo}" != "${split_repo_name}" ]; then
+						echo "error: you specify to save build into repo '${split_repo_repo}' of platform '${split_repo_platform}'"
+						echo "but this platform contains repo '${split_repo_name}'"
+					else
+						save_to_repository_id=$(echo "${all_project_info}" |\
+							sed -rn 's/^\["project","repositories",'${split_repo_num}',"id"\][[:space:]]+([0-9]+)[[:space:]]*$/\1/p')
+						#save_to_repo_in_platforms_for_build=${save_to_repository_id}
+						save_to_repository_name=$(echo "${all_project_info}" |\
+							sed -rn 's/^\["project","repositories",'${split_repo_num}',"name"\][[:space:]]+"?([-_.[:alnum:]]+)"?[[:space:]]*$/\1/p')
+						[ "${debug}" -gt 0 ] && echo "save_to_repository_name: ${save_to_repository_name}"
+					fi
+				fi
+
+				if [ -z "${save_to_repository_id}" ]; then
+					echo "do not know repo to save. if this is personal project, please specify 'reposave=personal'"
+				elif [ -z "${save_to_repo_in_platforms_for_build}" -a -z "${reposave}" ]; then
+					echo "you can't save to repo with id ${save_to_repository_id}"
+				else
+					[ "${debug}" -gt 0 ] && echo "save_to_repository_id: ${save_to_repository_id}"
+
+					# include repos
+					local include_repos
+					# check option "repos" first
+					if [ -n "${repos}" ]; then
+						local split_repos=( $(echo "${repos}" | sed 's/,/ /g') )
+						local split_repo_ids=""
+						for i in ${split_repos[@]}; do
+							local split_repo_num=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",([0-9]+),"name"\][[:space:]]+"?'${i}'"?[[:space:]]*$/\1/p')
+							local split_repo_id=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",'${split_repo_num}',"id"\][[:space:]]+([-_.[:alnum:]]+)[[:space:]]*$/\1/p')
+							split_repo_ids="${split_repo_ids}${split_repo_id},"
+						done
+						include_repos=${split_repo_ids%,}
+					fi
+
+					if [ -z "${include_repos}" ]; then
+						# if repo to include not specified, got it and add main repo if needed
+						local include_repo_num
+						local include_repo_name
+						if [ -n "${save_to_repo_in_platforms_for_build}" ]; then
+							# repo to save belongs to build platform
+							include_repos=${save_to_repo_in_platforms_for_build}
+							include_repo_num=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",([0-9]+),"id"\][[:space:]]+'${save_to_repository_id}'[[:space:]]*$/\1/p')
+							include_repo_name=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",'${include_repo_num=}',"name"\][[:space:]]+"?([-_.[:alnum:]]+)"?[[:space:]]*$/\1/p')
+						else
+							# repo to save do not belongs to build platform
+							# so get first repo from platform
+							include_repo_num=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",([0-9]+),"id"\].*$/\1/p' |\
+								head -n 1)
+							include_repo_name=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",'${include_repo_num=}',"name"\][[:space:]]+"?([-_.[:alnum:]]+)"?[[:space:]]*$/\1/p')
+							include_repos=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",'${include_repo_num=}',"id"\][[:space:]]+([0-9]+)"?[[:space:]]*$/\1/p')
+						fi
+						[ "${debug}" -gt 0 ] && echo "include_repo_num: ${include_repo_num}"
+						[ "${debug}" -gt 0 ] && echo "include_repo_name: ${include_repo_name}"
+						if [ "${include_repo_name}" != "main" ]; then
+							# try to find repo with name "main" in platform
+							include_repo_num=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",([0-9]+),"name"\][[:space:]]+"?main"?[[:space:]]*$/\1/p')
+							local include_repo_id=$(echo "${platforms_for_build}" |\
+								sed -rn 's/^\["platforms",'${platform_for_build_num}',"repositories",'${include_repo_num=}',"id"\][[:space:]]+([0-9]+)"?[[:space:]]*$/\1/p')
+							if [ -n "${include_repo_id}" ]; then
+								include_repos="${include_repo_id},${include_repos}"
+							fi
+						fi
+					fi
+
+					if [ -z "${include_repos}" ]; then
+						echo "do not know repos to include"
+					else
+						[ "${debug}" -gt 0 ] && echo "include_repos: ${include_repos}"
+
+						local archnames="1 i586 2 x86_64"
+						## if needed, take arch names from abf:
+						#local archnames=$(wget -qO - \
+						#	${apiurl}'/arches.json' |\
+						#	abb.json.sh |\
+						#	sed -rn '/^\["architectures"\]/{s/"id":([0-9]+),"name":"([-_[:alnum:]]+)"/<\1 \2>/g;s/^[^<]*<//;s/>[^>]*$//;s/>[^<>]+</ /g;p}')
+						[ "${debug}" -gt 0 ] && echo "arch names: ${archnames}"
+						[ "${debug}" -gt 0 ] && echo "build arches: ${arches[@]}"
+
+						for i in ${arches[@]}; do
+							local archn=$(echo ${archnames} | sed -rn 's/^.*\<([0-9]+) '${i}'\>.*$/\1/p')
+							[ -z "${archn}" ] && continue
+
+							local post="
+								{
+								\"build_list\": {
+									\"project_id\": ${project_id},
+									\"commit_hash\": \"${commit_hash}\",
+									\"update_type\": \"${update_type}\",
+									\"save_to_repository_id\": ${save_to_repository_id},
+									\"build_for_platform_id\": ${build_for_platform_id},
+									\"auto_publish\": ${auto_publish},
+									\"build_requires\": ${build_requires},
+									\"include_repos\": [ ${include_repos} ],
+									\"arch_id\": ${archn}
+								}
+							}"
+							post=$(echo $post | sed -r 's/[[:space:]]+//g')
+
+							[ "${debug}" -gt 0 ] && echo "post: ${post}"
+
+							# lets go
+
+							local temp1 temp2
+
+							# trick with saving stdout and stderr from here: http://mywiki.wooledge.org/BashFAQ/002
+							temp1=$( { temp2=$(wget -SO - ${apiurl}'/build_lists.json' --header="Content-Type: application/json" --header="Accept: application/json" --post-data="${post}") ; } 2>&1; echo "abb separator line"; echo "${temp2}")
+							fulljson=${temp1#*abb separator line$'\n'}
+							fullwget=${temp1%$'\n'abb separator line*}
+							if [ "${debug}" -gt 1 ]; then
+								echo >> fulljson.log
+								date >> fulljson.log
+								echo "${fulljson}" >> fulljson.log
+								echo >> fullwget.log
+								date >> fullwget.log
+								echo "${fullwget}" >> fullwget.log
+								echo >> fullreq.log
+								date >> fullreq.log
+								echo "${post}" >> fullreq.log
+							fi
+
+							# parse output
+							local sent_id=$(echo "${fulljson}" | abb.json.sh | \
+								sed -rn 's/^\["build_list","id"\][[:space:]]*"?([0-9]+)"?.*$/\1/p')
+							if [ -n "${sent_id}" ]; then
+								echo "${sent_id}"
+							else
+								echo "there is no buildlist id in the buildserver reply:"
+								echo "${fulljson}"
+							fi
+						done
+					fi
+				fi
+			fi
+		fi
+	fi
+}
+
 do_vars() {
-	local varslist="proto server owner branch remote abfyml buildlog restore project rows refresh defaultspec"
+	local varslist="proto server owner branch remote abfyml buildlog restore project rows refresh defaultspec arch platform repos updatetype commit publish withrequired reposave"
 	local varslistcase="${varslist[@]// /|}"
 	local vars
 	if [ ${#args[@]} -eq 0 ]; then
@@ -314,7 +618,7 @@ do_vars() {
 	fi
 	for i in "${vars[@]}"; do
 		case "$i" in
-			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec)
+			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec|arch|platform|repos|updatetype|commit|publish|withrequired|reposave)
 				echo "$i=${!i}"
 				;;
 			auth)
@@ -328,7 +632,7 @@ do_vars() {
 
 main_case() {
 	case "$command" in
-		clone|store|status|new|view|build|restore|publish|vars)
+		clone|store|status|new|view|build|restore|publish|vars|send)
 			do_${command}
 			;;
 		*)
@@ -344,7 +648,7 @@ declare -a opts=()
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status|new|view|publish|vars)
+		clone|build|store|restore|status|new|view|publish|vars|send)
 			if [ "${command}" == "vars" ]; then
 				args=("${args[@]}" "${i%%/}")
 			else
@@ -405,6 +709,33 @@ for i in "$@"; do
 			;;
 		defaultspec=*)
 			defaultspec=${i#defaultspec=}
+			;;
+		arch=*)
+			arch=${i#arch=}
+			;;
+		platform=*)
+			platform=${i#platform=}
+			;;
+		repos=*)
+			repos=${i#repos=}
+			;;
+		updatetype=*)
+			updatetype=${i#updatetype=}
+			;;
+		commit=*)
+			commit=${i#commit=}
+			;;
+		publish=*)
+			publish=${i#publish=}
+			;;
+		withrequired=*)
+			withrequired=${i#withrequired=}
+			;;
+		reposave=*)
+			reposave=${i#reposave=}
+			;;
+		debug=*)
+			debug=${i#debug=}
 			;;
 		*=*)
 			echo "unknown option: ${i}" | sed 's/=.*//'
@@ -467,7 +798,7 @@ case "$command" in
 				;;
 		esac
 		;;
-	status|view)
+	status|view|send)
 		case ${#args[@]} in
 			0)
 				get_project_from_curdir
@@ -496,7 +827,7 @@ case "$command" in
 esac
 
 # let's start
-if [ ${#args[@]} -eq 0 -o "${command}" == "vars" ]; then
+if [ ${#args[@]} -eq 0 -o "${command}" == "vars" -o "${command}" == "status" ]; then
 	main_case
 else
 	for project in "${args[@]}"; do

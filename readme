@@ -13,8 +13,8 @@ where <command>:
 build, builda, buildb, buildp... (see below)
 restore
 
-<project name> can be omitted for commands "build*", "restore", "status" and
-"view" if we are in the project dir.
+<project name> can be omitted for commands "build*", "restore", "status",
+"send" and "view" if we are in the project dir.
 
 commands "build*", "clone", "store", "restore" accepts multiple args.
 
@@ -126,6 +126,33 @@ one:
 if arg is numeric, run "w3m http://abf.rosalinux.ru/build_lists/<arg>"
 if arg is not numeric, run "w3m http://abf.rosalinux.ru/<owner>/<arg>"
 
-command "publish" send to abf.rosalinux.ru request to publish specified build
+command "publish" sends to abf.rosalinux.ru request to publish specified build
 lists.
+
+command "send" sends to abf.rosalinux.ru request to build project
+$ abb send [<project name> ... ]
+options (with defaults):
+# build arch
+arch="i586,x86_64"
+# platform
+platform="rosa2012.1"
+# repos to include from platform (f.e. "repos=main,contrib")
+repos=
+# update type (security bugfix enhancement recommended newpackage)
+updatetype=security
+# hash of commit to remote build
+commit=
+# auto publish (true|false)
+publish=false
+# rebuild a package with all its reverse dependencies (true|false)
+withrequired=false
+# repo to save
+# in form "platform/repo"
+# f.e.:
+# "username_personal/main" (simply "personal")
+# "rosa2012.1/contrib" (simply "rosa2012.1"
+# if project default repo is "contrib" for platform "rosa2012.1")
+reposave=
+# server api part
+serverapi=api/v1
 
