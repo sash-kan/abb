@@ -295,7 +295,7 @@ do_view() {
 }
 
 do_publish() {
-	local reply=$(wget -qO - https://${auth}abf.rosalinux.ru/api/v1/build_lists/${project}/publish.json)
+	local reply=$(wget -qO - ${apiurl}/build_lists/${project}/publish.json)
 	if [ -n "${reply}" ]; then
 		echo "${reply}" | abb.json.sh | sed -rn 's/^\["message"\][[:space:]]*"(.*)"[[:space:]]*$/'${project}': \1/p'
 	else
@@ -427,6 +427,8 @@ auth=${auth:+${auth}@}
 in_proj_dir=0
 
 projurl=${proto}://${auth}${server}/${owner}
+
+apiurl=${proto}://${auth}${server}/${serverapi}
 
 case "$command" in
 	clone|new)
