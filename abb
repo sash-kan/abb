@@ -269,20 +269,25 @@ do_store() {
 
 do_status() {
 	local out="" out2="" sleep_cmd="break"
-	if [ -n "${refresh}" ] && [ ${refresh} -ge 60 ] 2>/dev/null; then
-		sleep_cmd="sleep ${refresh}; date"
-		echo "query server every ${refresh} seconds (see readme)"
+	project=${args[0]}
+	if [ -z "${project}" ]; then
+		echo "please specify project"
+	else
+		if [ -n "${refresh}" ] && [ ${refresh} -ge 60 ] 2>/dev/null; then
+			sleep_cmd="sleep ${refresh}; date"
+			echo "query server every ${refresh} seconds (see readme)"
+		fi
+		echo "Id Status Project Version SaveToRepository Architecture User"
+		while true; do
+			#out2=$(lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
+			out2=$(lynx -dump "${projurl}/${project}/build_lists" | \
+				sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | \
+				tac | tail -n ${rows})
+			comm --nocheck-order -1 -3 <(echo "${out}") <(echo "${out2}")
+			out="$out2"
+			eval ${sleep_cmd}
+		done
 	fi
-	echo "Id Status Project Version SaveToRepository Architecture User"
-	while true; do
-		#out2=$(lynx -dump "https://${auth}abf.rosalinux.ru/${owner}/${project}/build_lists" | \
-		out2=$(lynx -dump "${projurl}/${project}/build_lists" | \
-			sed -rn '/^[[:space:]]+\[[0-9]+\][0-9]+ /{N;N;s/\[[0-9]+\]//g;s/\n/ /g;s/ +/ /g;p}' | \
-			tac | tail -n ${rows})
-		comm --nocheck-order -1 -3 <(echo "${out}") <(echo "${out2}")
-		out="$out2"
-		eval ${sleep_cmd}
-	done
 }
 
 substvars() {
