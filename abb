@@ -390,7 +390,7 @@ do_send() {
 				abb.json.sh)
 			[ "${debug}" -gt 1 ] && echo "all_project_refs: ${all_project_refs}"
 			local branch_num=$(echo "${all_project_refs}" |\
-				sed -rn 's/^\["refs_list",([0-9]+),"ref"\][[:space:]]*"?'${branch}'"?[[:space:]]*$/\1/p')
+				sed -rn 's/^\["refs_list",([0-9]+),"ref"\][[:space:]]*"?'$(echo "${branch}" | sed 's!/!\\/!g')'"?[[:space:]]*$/\1/p')
 			[ "${debug}" -gt 0 ] && echo "branch_num: ${branch_num}"
 			local commit_hash=$(echo "${all_project_refs}" |\
 				sed -rn 's/^\["refs_list",'${branch_num}',"object","sha"\][[:space:]]*"?([0-9a-zA-Z]+)"?[[:space:]]*$/\1/p')
