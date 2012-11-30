@@ -323,11 +323,19 @@ do_view() {
 }
 
 do_publish() {
-	local reply=$(wget -qO - ${apiurl}/build_lists/${project}/publish.json)
-	if [ -n "${reply}" ]; then
-		echo "${reply}" | abb.json.sh | sed -rn 's/^\["message"\][[:space:]]*"(.*)"[[:space:]]*$/'${project}': \1/p'
+	local temp1 temp2
+	# trick with saving stdout and stderr from here: http://mywiki.wooledge.org/BashFAQ/002
+	temp1=$( { temp2=$(wget -SO - ${apiurl}'/build_lists/'${project}'/publish.json') ; } 2>&1; echo "abb separator line"; echo "${temp2}")
+	local fulljson=${temp1#*abb separator line}
+	local fullwget=${temp1%abb separator line*}
+	fulljson=${fulljson#$'\n'}
+	fullwget=${fullwget%$'\n'}
+	if [ -n "${fulljson}" ]; then
+		echo "${fulljson}" | abb.json.sh | sed -rn 's/^\["message"\][[:space:]]*"(.*)"[[:space:]]*$/'${project}': \1/p'
 	else
-		echo "${project}: ERROR server returns empty reply. check build id with 'abb status [<project>]'"
+		echo "wget output:"
+		echo "${fullwget}"
+		echo "${project}: ERROR api server returns empty reply. check build id with 'abb status [<project>]'"
 	fi
 }
 
