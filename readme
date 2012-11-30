@@ -8,6 +8,7 @@ $ abb store <file name> ...
 $ abb status [<project name>]
 $ abb view [<project name>|<build_list id>]
 $ abb publish <build_list id> ...
+$ abb rejectpublish <build_list id> ...
 
 where <command>:
 build, builda, buildb, buildp... (see below)
@@ -128,6 +129,11 @@ if arg is not numeric, run "w3m http://abf.rosalinux.ru/<owner>/<arg>"
 
 command "publish" sends to abf.rosalinux.ru request to publish specified build
 lists.
+see: http://abf-doc.rosalinux.ru/v1/buildlists/#publish-build-list
+
+command "rejectpublish" sends to abf.rosalinux.ru request to reject publishing
+specified build lists.
+see: http://abf-doc.rosalinux.ru/v1/buildlists/#reject-publish-build-list
 
 command "send" sends to abf.rosalinux.ru request to build project
 $ abb send [<project name> ... ]

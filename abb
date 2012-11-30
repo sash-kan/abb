@@ -339,6 +339,23 @@ do_publish() {
 	fi
 }
 
+do_rejectpublish() {
+	local temp1 temp2
+	# trick with saving stdout and stderr from here: http://mywiki.wooledge.org/BashFAQ/002
+	temp1=$( { temp2=$(wget -SO - ${apiurl}'/build_lists/'${project}'/reject_publish.json') ; } 2>&1; echo "abb separator line"; echo "${temp2}")
+	local fulljson=${temp1#*abb separator line}
+	local fullwget=${temp1%abb separator line*}
+	fulljson=${fulljson#$'\n'}
+	fullwget=${fullwget%$'\n'}
+	if [ -n "${fulljson}" ]; then
+		echo "${fulljson}" | abb.json.sh | sed -rn 's/^\["message"\][[:space:]]*"(.*)"[[:space:]]*$/'${project}': \1/p'
+	else
+		echo "wget output:"
+		echo "${fullwget}"
+		echo "${project}: ERROR api server returns empty reply. check build id with 'abb status [<project>]'"
+	fi
+}
+
 do_send() {
 
 	debug=${debug:-0}
@@ -647,7 +664,7 @@ do_vars() {
 
 main_case() {
 	case "$command" in
-		clone|store|status|new|view|build|restore|publish|vars|send)
+		clone|store|status|new|view|build|restore|publish|rejectpublish|vars|send)
 			do_${command}
 			;;
 		*)
@@ -659,11 +676,12 @@ main_case() {
 unset command
 declare -a args=()
 declare -a opts=()
+declare -a buildlist=()
 
 # parse arguments
 for i in "$@"; do
 	case "$i" in
-		clone|build|store|restore|status|new|view|publish|vars|send)
+		clone|build|store|restore|status|new|view|publish|rejectpublish|vars|send)
 			if [ "${command}" == "vars" ]; then
 				args=("${args[@]}" "${i%%/}")
 			else
@@ -831,7 +849,7 @@ case "$command" in
 	store)
 		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - file name"
 		;;
-	publish)
+	publish|rejectpublish)
 		[ ${#args[@]} -lt 1 ] && usage "command '${command}' requires at least one argument - build_list id"
 		;;
 	vars)
