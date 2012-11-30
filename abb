@@ -581,8 +581,10 @@ do_send() {
 
 							# trick with saving stdout and stderr from here: http://mywiki.wooledge.org/BashFAQ/002
 							temp1=$( { temp2=$(wget -SO - ${apiurl}'/build_lists.json' --header="Content-Type: application/json" --header="Accept: application/json" --post-data="${post}") ; } 2>&1; echo "abb separator line"; echo "${temp2}")
-							fulljson=${temp1#*abb separator line$'\n'}
-							fullwget=${temp1%$'\n'abb separator line*}
+							local fulljson=${temp1#*abb separator line}
+							local fullwget=${temp1%abb separator line*}
+							fulljson=${fulljson#$'\n'}
+							fullwget=${fullwget%$'\n'}
 							if [ "${debug}" -gt 1 ]; then
 								echo >> fulljson.log
 								date >> fulljson.log
