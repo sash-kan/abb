@@ -73,6 +73,9 @@ withrequired=false
 reposave=
 # server api part
 serverapi=api/v1
+# if used wrapper from /etc/profile.d/abb.bash.profile,
+# cd to project dir after clone one project
+cdafterclone=yes
 
 # get user settings
 # first look in ~/.abbrc
@@ -650,7 +653,7 @@ do_vars() {
 	fi
 	for i in "${vars[@]}"; do
 		case "$i" in
-			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec|arch|platform|repos|updatetype|commit|publish|withrequired|reposave)
+			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec|arch|platform|repos|updatetype|commit|publish|withrequired|reposave|cdafterclone)
 				echo "$i=${!i}"
 				;;
 			auth)
