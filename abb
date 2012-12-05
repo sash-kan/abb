@@ -369,14 +369,14 @@ do_send() {
   #\"auto_publish\": ${auto_publish},
 
 	local auto_publish=false
-	[ "${publish}" == "true" ] && auto_publish=true
+	[ "${publish}" == "true" -o "${publish}" == "yes" ] && auto_publish=true
 	[ "${debug}" -gt 0 ] && echo "auto_publish: ${auto_publish}"
 
 
   #\"build_requires\": ${withrequired},
 
 	local build_requires=false
-	[ "${withrequired}" == "true" ] && build_requires=true
+	[ "${withrequired}" == "true" -o "${withrequired}" == "yes" ] && build_requires=true
 	[ "${debug}" -gt 0 ] && echo "build_requires: ${build_requires}"
 
 
