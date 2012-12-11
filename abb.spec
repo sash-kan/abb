@@ -1,5 +1,5 @@
 name:		abb
-version:	0.4
+version:	0.5
 release:	1
 summary:	command-line client for abf.rosalinux.ru
 
