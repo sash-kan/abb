@@ -399,7 +399,7 @@ do_send() {
   #\"project_id\": ${project_id},
 
 	local project_id=$(wget -qO - \
-		${apiurl}'/projects/get_id.json?name='${project}'&owner='${owner} |\
+		${apiurl}'/projects/get_id.json?name='$(echo ${project} | sed 's/+/%2B/g')'&owner='${owner} |\
 		abb.json.sh |\
 		sed -rn 's/^\["project","id"\][[:space:]]+([0-9]+)[[:space:]]*$/\1/p')
 	if [ -z "${project_id}" ]; then
