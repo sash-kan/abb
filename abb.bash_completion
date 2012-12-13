@@ -3,7 +3,9 @@
 _have abb && {
 	_abb() {
 		local commands cur prev words cword specs IFS sifs=$IFS
-		local rpmbuildopts ncur varvalue branch updatetypes
+		local rpmbuildopts ncur varvalue varvalue1 branch updatetypes
+		local opts opts_view opts_status opts_restore opts_build
+		local opts_publish opts_store opts_clone opts_new
 
 		COMPREPLY=()
 
@@ -18,6 +20,7 @@ _have abb && {
 			new
 			publish
 			restore
+			send
 			status
 			store
 			vars
@@ -33,7 +36,30 @@ _have abb && {
 			--short-circuit"
 
 		opts="proto= server= owner= branch= remote= auth= abfyml= buildlog= \
-			restore= project= rows= refresh= defaultspec= arch= platform= updatetype= commit="
+			restore= project= rows= refresh= defaultspec= \
+			arch= platform= updatetype= commit= publish= repos= reposave= withrequired="
+
+		opts_send="proto= server= owner= branch= auth= project= arch= platform= \
+			updatetype= commit= publish= repos= reposave= withrequired="
+
+		opts_view="proto= server= owner= auth= project="
+
+		opts_status="proto= server= owner= auth= project= rows= refresh="
+
+		opts_restore="abfyml= project="
+
+		opts_build="proto= server= owner= branch= remote= auth= abfyml= buildlog= \
+			restore= project="
+
+		opts_publish="proto= server= auth="
+
+		opts_store="auth= abfyml="
+
+		opts_clone="proto= server= owner= branch= remote= auth= abfyml= \
+			restore= project="
+
+		opts_new="proto= server= owner= remote= auth= \
+			project= defaultspec="
 
 		updatetypes="security bugfix enhancement recommended newpackage"
 
@@ -99,33 +125,73 @@ _have abb && {
 					COMPREPLY=( $( compgen -W "i586,x86_64 i586 x86_64 $varvalue" -- "$ncur" ) )
 					;;
 				platform=*)
-					varvalue="$(abb vars ${cur%=*} branch)"
-					varvalue="${varvalue[@]##*=}"
-					COMPREPLY=( $( compgen -W "$branch $varvalue" -- "$ncur" ) )
+					varvalue1="$(abb vars branch)"
+					varvalue1="${varvalue1[@]##*=}"
+					varvalue="${varvalue} ${varvalue1}"
+					COMPREPLY=( $( compgen -W "$varvalue" -- "$ncur" ) )
 					;;
 				updatetype=*)
 					COMPREPLY=( $( compgen -W "$updatetypes $varvalue" -- "$ncur" ) )
+					;;
+				publish=*)
+					COMPREPLY=( $( compgen -W "true false $varvalue" -- "$ncur" ) )
+					;;
+				repos=*)
+					COMPREPLY=( $( compgen -W "main main,contrib $varvalue" -- "$ncur" ) )
+					;;
+				reposave=*)
+					varvalue1="$(abb vars branch)"
+					varvalue1="${varvalue1[@]##*=}"
+					varvalue="${varvalue} ${varvalue1}"
+					COMPREPLY=( $( compgen -W "personal $varvalue" -- "$ncur" ) )
+					;;
+				withrequired=*)
+					COMPREPLY=( $( compgen -W "true false $varvalue" -- "$ncur" ) )
 					;;
 			esac
 			return 0
 		fi
 
 		case "${words[1]}" in
-			build*|restore|status|view)
+			build*)
 				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
-					$( compgen -W "$opts" -- "$cur" ) )
+					$( compgen -W "$opts_build" -- "$cur" ) )
 				return 0
 				;;
-			clone|new)
-				COMPREPLY=( $( compgen -d -W "$opts" -- "$cur" ) )
+			restore)
+				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
+					$( compgen -W "$opts_restore" -- "$cur" ) )
+				return 0
+				;;
+			status)
+				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
+					$( compgen -W "$opts_status" -- "$cur" ) )
+				return 0
+				;;
+			view)
+				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
+					$( compgen -W "$opts_view" -- "$cur" ) )
+				return 0
+				;;
+			send)
+				COMPREPLY=( $( compgen -d -W "$specs" -- "$cur" ) \
+					$( compgen -W "$opts_send" -- "$cur" ) )
+				return 0
+				;;
+			clone)
+				COMPREPLY=( $( compgen -d -W "$opts_clone" -- "$cur" ) )
+				return 0
+				;;
+			new)
+				COMPREPLY=( $( compgen -d -W "$opts_new" -- "$cur" ) )
 				return 0
 				;;
 			store)
-				COMPREPLY=( $( compgen -f -W "$opts" -- "$cur" ) )
+				COMPREPLY=( $( compgen -f -W "$opts_store" -- "$cur" ) )
 				return 0
 				;;
 			publish)
-				COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+				COMPREPLY=( $( compgen -W "$opts_publish" -- "$cur" ) )
 				return 0
 				;;
 			vars)
