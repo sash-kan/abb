@@ -43,6 +43,10 @@ install %{SOURCE4} %{buildroot}%{_datadir}/%{name}/
 install %{SOURCE5} %{buildroot}%{_bindir}/
 install -d %{buildroot}%{_datadir}/bash_completion
 install %{SOURCE8} %{buildroot}%{_datadir}/bash_completion/abb
+%if %mdkversion < 201210
+# rosa 2012.0
+sed -i 's/^_have /have /' %{buildroot}%{_datadir}/bash_completion/abb
+%endif
 install -d %{buildroot}%{_sysconfdir}/bash_completion.d
 ln -s %{_datadir}/bash_completion/abb %{buildroot}%{_sysconfdir}/bash_completion.d/abb
 
