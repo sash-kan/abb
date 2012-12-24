@@ -19,7 +19,7 @@ source8:	abb.bash_completion
 
 requires:	bash
 requires:	git-core
-requires:	w3m
+suggests:	w3m
 requires:	curl
 requires:	lynx
 requires:	wget
