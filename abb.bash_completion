@@ -37,10 +37,10 @@ _have abb && {
 
 		opts="proto= server= owner= branch= remote= auth= abfyml= buildlog= \
 			restore= project= rows= refresh= defaultspec= \
-			arch= platform= updatetype= commit= publish= repos= reposave= withrequired="
+			arch= platform= updatetype= commit= publish= repos= reposave="
 
 		opts_send="proto= server= owner= branch= auth= project= arch= platform= \
-			updatetype= commit= publish= repos= reposave= withrequired="
+			updatetype= commit= publish= repos= reposave="
 
 		opts_view="proto= server= owner= auth= project="
 
@@ -144,9 +144,6 @@ _have abb && {
 					varvalue1="${varvalue1[@]##*=}"
 					varvalue="${varvalue} ${varvalue1}"
 					COMPREPLY=( $( compgen -W "personal $varvalue" -- "$ncur" ) )
-					;;
-				withrequired=*)
-					COMPREPLY=( $( compgen -W "true false $varvalue" -- "$ncur" ) )
 					;;
 			esac
 			return 0

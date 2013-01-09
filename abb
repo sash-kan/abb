@@ -62,8 +62,6 @@ updatetype=security
 commit=
 # auto publish (true|false)
 publish=false
-# rebuild a package with all its reverse dependencies (true|false)
-withrequired=false
 # repo to save
 # in form "platform/repo"
 # f.e.:
@@ -376,13 +374,6 @@ do_send() {
 	[ "${debug}" -gt 0 ] && echo "auto_publish: ${auto_publish}"
 
 
-  #\"build_requires\": ${withrequired},
-
-	local build_requires=false
-	[ "${withrequired}" == "true" -o "${withrequired}" == "yes" ] && build_requires=true
-	[ "${debug}" -gt 0 ] && echo "build_requires: ${build_requires}"
-
-
 	#\"update_type\": \"${update_type}\",
 
 	update_types=(security bugfix enhancement recommended newpackage)
@@ -594,7 +585,6 @@ do_send() {
 									\"save_to_repository_id\": ${save_to_repository_id},
 									\"build_for_platform_id\": ${build_for_platform_id},
 									\"auto_publish\": ${auto_publish},
-									\"build_requires\": ${build_requires},
 									\"include_repos\": [ ${include_repos} ],
 									\"arch_id\": ${archn}
 								}
@@ -643,7 +633,7 @@ do_send() {
 }
 
 do_vars() {
-	local varslist="proto server owner branch remote abfyml buildlog restore project rows refresh defaultspec arch platform repos updatetype commit publish withrequired reposave"
+	local varslist="proto server owner branch remote abfyml buildlog restore project rows refresh defaultspec arch platform repos updatetype commit publish reposave"
 	local varslistcase="${varslist[@]// /|}"
 	local vars
 	if [ ${#args[@]} -eq 0 ]; then
@@ -653,7 +643,7 @@ do_vars() {
 	fi
 	for i in "${vars[@]}"; do
 		case "$i" in
-			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec|arch|platform|repos|updatetype|commit|publish|withrequired|reposave|cdafterclone)
+			proto|server|owner|branch|remote|abfyml|buildlog|restore|project|rows|refresh|defaultspec|arch|platform|repos|updatetype|commit|publish|reposave|cdafterclone)
 				echo "$i=${!i}"
 				;;
 			auth)
@@ -763,9 +753,6 @@ for i in "$@"; do
 			;;
 		publish=*)
 			publish=${i#publish=}
-			;;
-		withrequired=*)
-			withrequired=${i#withrequired=}
 			;;
 		reposave=*)
 			reposave=${i#reposave=}

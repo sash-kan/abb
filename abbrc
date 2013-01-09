@@ -58,9 +58,6 @@
 # auto publish (true|false)
 #publish=false
 
-# rebuild a package with all its reverse dependencies (true|false)
-#withrequired=false
-
 # repo to save
 # in form "platform/repo"
 # f.e.:
